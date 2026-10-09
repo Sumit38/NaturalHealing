@@ -1,7 +1,7 @@
 {
   "name": "naturalhealing",
   "version": "0.1.0",
-  "description": "Self-healing locator engine for end-to-end tests (Playwright adapter MVP)",
+  "description": "Self-healing locator engine for end-to-end tests (Playwright and Selenium adapters)",
   "type": "module",
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -11,8 +11,18 @@
   "dependencies": {
     "playwright-core": "1.56.1"
   },
+  "peerDependencies": {
+    "selenium-webdriver": ">=4"
+  },
+  "peerDependenciesMeta": {
+    "selenium-webdriver": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "@types/selenium-webdriver": "^4.35.7",
+    "selenium-webdriver": "^4.50.0",
     "tsx": "^4.20.0",
     "typescript": "^5.6.0"
   },
@@ -20,5 +30,15 @@
     "heal": "dist/cli.js"
   },
   "main": "dist/index.js",
-  "types": "dist/index.d.ts"
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./selenium": {
+      "types": "./dist/selenium.d.ts",
+      "default": "./dist/selenium.js"
+    }
+  }
 }
