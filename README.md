@@ -42,6 +42,8 @@ await (await healer.locate(page, '#saveBtn')).click();
 healer.finish('save profile', passed); // in afterEach
 ```
 
+When `locate` is called from a fixture or helper, pass the spec file so fixes land there: `healer.locate(page, selector, { file: testInfo.file })`. `examples/shop-app/heal-fixture.ts` shows a complete Playwright Test fixture.
+
 Only heals whose test then passed are applied. Heals below the auto level are applied only when a person passes `--approve <id>` (ids are shown by `heal report`). `heal pr` needs `git` and, for the pull request, the GitHub CLI (`gh`); use `--no-push` or `--no-pr` to stop earlier.
 
 ## Bench result
@@ -53,6 +55,14 @@ Only heals whose test then passed are applied. Heals below the auto level are ap
 - Only 3 of the 9 reach the 0.85 auto-apply threshold; the other 6 are suggested for review. Thresholds and weights are starting values and need tuning on real suites.
 
 The bench is a small hand-made page, not a real application. Treat the numbers as a smoke test of the algorithm, not a measured heal rate.
+
+## Local app evaluation
+
+`examples/shop-app` is a small local shop and bank app (login, sign-up, search, cart, transfers) with a v1 release, two later releases that change 29 elements each, and a 14-test Playwright Test suite written for v1. It shows how to wire the healer into Playwright Test with a fixture, and scores every heal against ground truth. Across both releases, 30 heals picked the right element, 2 picked the wrong one (both caught when the test then failed), and 11 cases were refused. Details, and what the run says about the 85% threshold, are in [examples/shop-app/RESULTS.md](examples/shop-app/RESULTS.md). It is a local app built for the test, not a real site.
+
+```sh
+cd examples/shop-app && ./run-eval.sh v2    # or v3
+```
 
 ## Not built yet
 

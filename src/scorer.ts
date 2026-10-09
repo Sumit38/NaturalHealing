@@ -89,11 +89,21 @@ function posSimilarity(old: UINode, cand: UINode, fp: Fingerprint, vp: { w: numb
   return Math.max(0, 1 - Math.hypot(ax - bx, ay - by) / 0.5);
 }
 
+/**
+ * How alike two elements' names are. The accessible name is what a user reads
+ * as the element's label, so it decides when the old element had one; inner
+ * text is the fallback. (A select's inner text is its option list, which many
+ * selects share, so it must not outvote a different label.)
+ */
+export function nameSimilarity(old: UINode, cand: UINode): number {
+  return old.name ? textSimilarity(old.name, cand.name) : textSimilarity(old.text, cand.text);
+}
+
 export function scoreCandidate(fp: Fingerprint, cand: UINode, vp: { w: number; h: number }, w: Weights = DEFAULT_WEIGHTS): Scored {
   const old = fp.node;
   const signals = {
     attr: attrSimilarity(old, cand),
-    text: Math.max(textSimilarity(old.name, cand.name), textSimilarity(old.text, cand.text)),
+    text: nameSimilarity(old, cand),
     tree: treeSimilarity(old, cand),
     pos: posSimilarity(old, cand, fp, vp),
     role: old.role === cand.role ? 1 : 0,
@@ -108,8 +118,7 @@ export function decide(fp: Fingerprint, snap: Snapshot, w: Weights = DEFAULT_WEI
   // An element that had a name is never matched to one with an unrelated
   // name: "Save" and "Cancel" are different buttons however alike they sit.
   const named = Boolean(fp.node.name || fp.node.text);
-  const sameName = (n: UINode) =>
-    !named || Math.max(textSimilarity(fp.node.name, n.name), textSimilarity(fp.node.text, n.text)) >= t.minNameSimilarity;
+  const sameName = (n: UINode) => !named || nameSimilarity(fp.node, n) >= t.minNameSimilarity;
   const pool = snap.nodes.filter((n) => n.role === fp.node.role && sameName(n));
   const top = pool.map((n) => scoreCandidate(fp, n, snap.viewport, w)).sort((a, b) => b.score - a.score).slice(0, 3);
   const best = top[0];
