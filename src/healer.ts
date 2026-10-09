@@ -1,14 +1,18 @@
+import { createHash } from 'node:crypto';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Locator, Page } from 'playwright-core';
 import { browserFn } from './browser.js';
 import type { Decision, Fingerprint, Snapshot, UINode, Verdict } from './model.js';
-import { patchSelector } from './patcher.js';
+import { applyRecords } from './apply.js';
 import { DEFAULT_THRESHOLDS, DEFAULT_WEIGHTS, decide, type Thresholds, type Weights } from './scorer.js';
 import { FingerprintStore } from './store.js';
 
 export type HealStatus = 'refused' | 'retried' | 'verified' | 'failed-verification' | 'patched' | 'needs-review';
 
 export interface HealRecord {
+  id: string;
   test: string;
   key: string;
   file?: string;
@@ -30,6 +34,8 @@ export interface HealerOptions {
   thresholds?: Thresholds;
   /** Milliseconds to wait for the original locator before treating it as broken. */
   lookupTimeout?: number;
+  /** Directory for heal records read by the `heal` command. Defaults to HEAL_DIR or .heal. */
+  dir?: string;
 }
 
 export class Healer {
@@ -39,9 +45,12 @@ export class Healer {
   private readonly thresholds: Thresholds;
   private readonly lookupTimeout: number;
   private test = 'default';
+  private readonly recordsFile: string;
 
   constructor(opts: HealerOptions = {}) {
-    this.store = new FingerprintStore(opts.storeFile ?? '.heal/fingerprints.json');
+    const dir = opts.dir ?? process.env.HEAL_DIR ?? '.heal';
+    this.recordsFile = join(dir, 'records', `${process.pid}-${Date.now()}.json`);
+    this.store = new FingerprintStore(opts.storeFile ?? join(dir, 'fingerprints.json'));
     this.weights = opts.weights ?? DEFAULT_WEIGHTS;
     this.thresholds = opts.thresholds ?? DEFAULT_THRESHOLDS;
     this.lookupTimeout = opts.lookupTimeout ?? 500;
@@ -73,21 +82,24 @@ export class Healer {
     const snap = (await page.evaluate(browserFn as any)) as Snapshot;
     const decision = decide(fp, snap, this.weights, this.thresholds);
     const rec: HealRecord = {
-      test: this.test, key, file, oldSelector: selector, verdict: decision.verdict, confidence: decision.confidence,
+      id: createHash('sha1').update(`${this.test}\0${selector}`).digest('hex').slice(0, 8), test: this.test, key, file, oldSelector: selector, verdict: decision.verdict, confidence: decision.confidence,
       reason: decision.reason, oldNode: fp.node, matched: decision.best?.node, status: 'refused', decision,
     };
     this.records.push(rec);
+    this.save();
     if (decision.verdict === 'refuse' || !decision.best) return original;
 
     const newSelector = await stableSelector(page, decision.best.node);
     if (!newSelector) {
       rec.reason = 'Matched element has no selector that resolves uniquely to it.';
       rec.verdict = 'refuse';
+      this.save();
       return original;
     }
     rec.newSelector = newSelector;
     rec.status = 'retried';
     rec.fingerprintAfter = { node: decision.best.node, viewport: snap.viewport, selector: newSelector };
+    this.save();
     return page.locator(newSelector);
   }
 
@@ -97,18 +109,18 @@ export class Healer {
       r.status = passed ? 'verified' : 'failed-verification';
       if (passed && r.fingerprintAfter) this.store.set(r.key, r.fingerprintAfter);
     }
+    this.save();
+  }
+
+  private save(): void {
+    mkdirSync(join(this.recordsFile, '..'), { recursive: true });
+    writeFileSync(this.recordsFile, JSON.stringify(this.records, null, 2));
   }
 
   /** Writes auto-confidence, verified heals into test source. Others stay suggestions. */
   applyPatches(): HealRecord[] {
-    const done: HealRecord[] = [];
-    for (const r of this.records) {
-      if (r.status !== 'verified' || r.verdict !== 'auto' || !r.file || !r.newSelector) continue;
-      const res = patchSelector(r.file, r.oldSelector, r.newSelector);
-      r.status = res.applied ? 'patched' : 'needs-review';
-      if (!res.applied) r.reason = res.reason;
-      done.push(r);
-    }
+    const done = applyRecords(this.records);
+    this.save();
     return done;
   }
 }

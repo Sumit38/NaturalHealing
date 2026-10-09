@@ -23,6 +23,27 @@ npm install
 npm test        # needs Chromium; set up for /opt/pw-browsers
 ```
 
+## Command line
+
+```sh
+npm run build
+npx heal run -- npx playwright test    # run your tests; heals are recorded in .heal/
+npx heal report                        # list heals, write .heal/report.html
+npx heal apply --approve a1b2c3d4      # rewrite test files (auto-level heals, plus ids you approve)
+npx heal pr                            # apply, commit on a branch, push, open a draft pull request
+```
+
+In your tests, use the healer in place of `page.locator`, and tell it when each test ends:
+
+```ts
+const healer = new Healer();          // reads HEAL_DIR set by `heal run`
+healer.beginTest('save profile');
+await (await healer.locate(page, '#saveBtn')).click();
+healer.finish('save profile', passed); // in afterEach
+```
+
+Only heals whose test then passed are applied. Heals below the auto level are applied only when a person passes `--approve <id>` (ids are shown by `heal report`). `heal pr` needs `git` and, for the pull request, the GitHub CLI (`gh`); use `--no-push` or `--no-pr` to stop earlier.
+
 ## Bench result
 
 14 scripted UI changes (renamed ids, moved or wrapped elements, link instead of button, open shadow DOM, plus cases that must not heal):
@@ -35,4 +56,4 @@ The bench is a small hand-made page, not a real application. Treat the numbers a
 
 ## Not built yet
 
-Visual similarity, SQLite store, TypeScript syntax-tree patcher, opening pull requests, other frameworks, API healing, mobile. See the architecture plan for the roadmap.
+Visual similarity, SQLite store, TypeScript syntax-tree patcher, an MCP server, other frameworks, API healing, mobile. See the architecture plan for the roadmap.
