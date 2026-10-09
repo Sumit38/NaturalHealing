@@ -7,7 +7,7 @@ import { chromium, type Browser, type Page } from 'playwright-core';
 import { BASE_SAVE, SHADOW_SAVE, page as app } from '../demo/app.js';
 import { Healer } from '../src/index.js';
 
-type Expect = 'heal' | 'untouched' | 'not-auto';
+type Expect = 'heal' | 'untouched' | 'not-auto' | 'refuse';
 interface Scenario {
   name: string;
   selector: string;
@@ -18,6 +18,11 @@ interface Scenario {
   target?: string;
 }
 
+const NEWS = '<label><input id="news" type="checkbox" data-x="news"> Send me the newsletter</label>';
+const TERMS = '<label><input type="checkbox" data-x="terms"> I accept the terms</label>';
+const OPTS = '<option>Checking</option><option>Savings</option>';
+const ACCOUNTS = (from: string, to: string) =>
+  `<label for="${from}">From account</label><select id="${from}" data-x="from">${OPTS}</select><label for="${to}">To account</label><select id="${to}" data-x="to">${OPTS}</select>`;
 const renamed = '<button id="coloredButton" class="btn primary" data-x="save">Save</button>';
 const scenarios: Scenario[] = [
   { name: 'id renamed, same text (the Save button case)', selector: '#saveBtn', before: app(), after: app(renamed), expect: 'heal', target: 'save' },
@@ -34,6 +39,10 @@ const scenarios: Scenario[] = [
   { name: 'icon-only button, id renamed', selector: '#saveBtn', before: app(), after: app('<button id="b1" class="btn primary" data-x="save">\u{1F4BE}</button>'), expect: 'not-auto' },
   { name: 'two Save buttons appear (ambiguous)', selector: '#saveBtn', before: app(), after: app('<button id="b1" class="btn primary" data-x="save">Save</button><button id="b2" class="btn primary" data-x="save2">Save</button>'), expect: 'not-auto' },
   { name: 'Save button removed entirely', selector: '#saveBtn', before: app(), after: app(''), expect: 'not-auto' },
+  // Found on the local ShopBank app: a removed checkbox named by a wrapping label was matched to another checkbox.
+  { name: 'wrapped-label checkbox removed, another remains', selector: '#news', before: app(BASE_SAVE, NEWS + TERMS), after: app(BASE_SAVE, TERMS), expect: 'refuse' },
+  // Selects share their option text; the label must decide between From and To.
+  { name: 'From and To selects both renamed', selector: '#fromAccount', before: app(BASE_SAVE, ACCOUNTS('fromAccount', 'toAccount')), after: app(BASE_SAVE, ACCOUNTS('source', 'destination')), expect: 'heal', target: 'from' },
 ];
 
 const exe = ['/opt/pw-browsers/chromium-1194/chrome-linux/chrome'].find(existsSync);
@@ -74,6 +83,10 @@ describe('healing bench', () => {
           else falseHeals++;
         }
         assert.ok(found === s.target || rec.verdict === 'refuse', `healed to the wrong element: ${found}`);
+      } else if (s.expect === 'refuse') {
+        assert.ok(rec, 'a lookup failure should have been recorded');
+        if (rec.verdict !== 'refuse') falseHeals++;
+        assert.equal(rec.verdict, 'refuse', `the element is gone, but it healed to ${found}`);
       } else {
         assert.ok(rec, 'a lookup failure should have been recorded');
         assert.notEqual(rec.verdict, 'auto', 'ambiguous or missing targets must never auto-heal');
