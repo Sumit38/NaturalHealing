@@ -1,0 +1,18 @@
+{
+  "name": "naturalhealing",
+  "version": "0.1.0",
+  "description": "Self-healing locator engine for end-to-end tests (Playwright adapter MVP)",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test test/*.test.ts"
+  },
+  "dependencies": {
+    "playwright-core": "1.56.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.6.0"
+  }
+}
