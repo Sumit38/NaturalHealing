@@ -64,8 +64,9 @@ export class Healer {
    * Drop-in for page.locator(selector). Healing runs only when the lookup
    * finds nothing; assertions are never touched.
    */
-  async locate(page: Page, selector: string): Promise<Locator> {
-    const file = callerFile();
+  async locate(page: Page, selector: string, opts: { file?: string } = {}): Promise<Locator> {
+    // Pass `file` when calling from a fixture or helper, so the fix lands in the spec, not the helper.
+    const file = opts.file ?? callerFile();
     const key = `${this.test}::${selector}`;
     const original = page.locator(selector);
     await original.first().waitFor({ state: 'attached', timeout: this.lookupTimeout }).catch(() => undefined);

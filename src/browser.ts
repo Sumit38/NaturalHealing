@@ -27,8 +27,16 @@ export const BROWSER_SRC = `(target) => {
       const lab = root.querySelector ? root.querySelector('label[for="' + CSS.escape(el.id) + '"]') : null;
       if (lab) return clean(lab.textContent);
     }
+    // A label wrapping the control names it too (<label><input> Remember me</label>).
+    const wrap = el.closest && ['input', 'select', 'textarea'].includes(el.tagName.toLowerCase()) ? el.closest('label') : null;
+    if (wrap) return clean(wrap.textContent);
     const tag = el.tagName.toLowerCase();
-    if (tag === 'input') return clean(el.getAttribute('placeholder') || el.getAttribute('value') || el.getAttribute('name'));
+    if (tag === 'input') {
+      // value is a name only for button-like inputs; for fields it is user data that changes.
+      const type = (el.getAttribute('type') || 'text').toLowerCase();
+      const value = ['button', 'submit', 'reset'].includes(type) ? el.getAttribute('value') : null;
+      return clean(el.getAttribute('placeholder') || value || el.getAttribute('name'));
+    }
     const t = clean(el.textContent);
     return t.length > 80 ? t.slice(0, 80) : t;
   };
