@@ -96,7 +96,7 @@ export async function launchBrowser(headless = true): Promise<Browser> {
   let last: unknown;
   for (const channel of [undefined, 'chrome', 'msedge'] as const) {
     try {
-      return await chromium.launch({ channel, headless });
+      return await chromium.launch({ channel, headless, args: ['--disable-dev-shm-usage'] });
     } catch (e) {
       last = e;
     }

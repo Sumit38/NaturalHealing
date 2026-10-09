@@ -9,6 +9,9 @@ import { DEMO_TEST_DATA, DEMO_USE_CASE } from '../src/server/demo.js';
 import { createApp } from '../src/server/index.js';
 import { writeXlsx, readXlsx } from '../src/server/xlsx.js';
 import { writeCsv } from '../src/server/csv.js';
+import { strToU8, zipSync } from 'fflate';
+
+const require_fflate = () => ({ strToU8, zipSync });
 
 describe('the guided path: use case to cases to run to report', () => {
   let web: Server;
@@ -220,6 +223,53 @@ describe('suites belong to their owner', () => {
       assert.equal((await bob('/api/suites')).body.length, 0);
       assert.equal((await ann('/api/suites')).body.length, 1);
       assert.equal((await admin('/api/suites')).body.length, 1, 'the admin sees every suite');
+    } finally {
+      server.close();
+    }
+  });
+});
+
+describe('hosting limits', () => {
+  it('queues runs beyond the limit, then runs them in turn', async () => {
+    const { runs } = createApp({ dataDir: mkdtempSync(join(tmpdir(), 'limit-')), maxConcurrent: 1 });
+    const make = (name: string) => {
+      const { zipSync, strToU8 } = require_fflate();
+      return runs.create({ name, framework: 'custom', appUrl: '', command: 'node -e "setTimeout(()=>{},1500)"', install: false, filename: 'p.zip', upload: Buffer.from(zipSync({ 'a.js': strToU8('1') })) });
+    };
+    const a = make('first');
+    const b = make('second');
+    await new Promise((r) => setTimeout(r, 600));
+    assert.equal(runs.get(a.id)!.status, 'running');
+    assert.equal(runs.get(b.id)!.status, 'queued', 'the second waits for a free slot');
+    for (let i = 0; i < 40 && runs.get(b.id)!.status !== 'passed'; i++) await new Promise((r) => setTimeout(r, 300));
+    assert.equal(runs.get(a.id)!.status, 'passed');
+    assert.equal(runs.get(b.id)!.status, 'passed');
+  });
+
+  it('a run deleted while it waits is simply skipped', async () => {
+    const { runs } = createApp({ dataDir: mkdtempSync(join(tmpdir(), 'limit2-')), maxConcurrent: 1 });
+    const { zipSync, strToU8 } = require_fflate();
+    const up = Buffer.from(zipSync({ 'a.js': strToU8('1') }));
+    const a = runs.create({ name: 'a', framework: 'custom', appUrl: '', command: 'node -e "setTimeout(()=>{},1200)"', install: false, filename: 'p.zip', upload: up });
+    const b = runs.create({ name: 'b', framework: 'custom', appUrl: '', command: 'node -e "1"', install: false, filename: 'p.zip', upload: up });
+    await new Promise((r) => setTimeout(r, 300));
+    assert.equal(runs.delete(b.id), true);
+    for (let i = 0; i < 30 && runs.get(a.id)!.status !== 'passed'; i++) await new Promise((r) => setTimeout(r, 300));
+    assert.equal(runs.get(a.id)!.status, 'passed', 'the server did not crash and the other run finished');
+  });
+
+  it('refuses test-code uploads when they are turned off, but still serves everything else', async () => {
+    const { server } = createApp({ dataDir: mkdtempSync(join(tmpdir(), 'nocode-')), allowCodeUploads: false });
+    await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
+    const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+    try {
+      assert.equal((await (await fetch(base + '/healthz')).json()).ok, true);
+      assert.equal((await (await fetch(base + '/api/auth/state')).json()).codeUploads, false);
+      const up = await fetch(base + '/api/runs?name=x&filename=p.zip', { method: 'POST', body: Buffer.from([80, 75, 3, 4]) });
+      assert.equal(up.status, 403);
+      assert.match((await up.json()).error, /turned off/);
+      const gen = await fetch(base + '/api/usecases/generate', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text: DEMO_USE_CASE }) });
+      assert.equal(gen.status, 201, 'use cases and test cases are unaffected');
     } finally {
       server.close();
     }

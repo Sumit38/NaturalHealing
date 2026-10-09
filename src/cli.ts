@@ -12,7 +12,7 @@ const HELP = `heal - self-healing test runner
   heal report [--dir .heal]                  list heals and write .heal/report.html
   heal apply [--dir .heal] [--approve id,id] [--min-confidence 0.8]
                                              rewrite test files for verified heals
-  heal serve [--port 4173] [--host 127.0.0.1] [--data .heal-server] [--no-login] [--token secret] [--https]
+  heal serve [--port 4173] [--host 127.0.0.1] [--data .heal-server] [--no-login] [--token secret] [--https] [--no-code-uploads]
                                              web app: upload tests, run them, review and apply heals
   heal pr [--dir .heal] [--approve id,id] [--branch name] [--no-push] [--no-pr]
                                              apply, commit on a branch, push, open a pull request
@@ -68,16 +68,17 @@ function main(argv: string[]): number {
     return res.status ?? 1;
   }
   if (cmd === 'serve') {
-    const host = typeof f.host === 'string' ? f.host : '127.0.0.1';
+    const host = typeof f.host === 'string' ? f.host : process.env.HOST || '127.0.0.1';
     const token = typeof f.token === 'string' ? f.token : process.env.HEAL_TOKEN;
     const accounts = !f['no-login'];
     if (host !== '127.0.0.1' && host !== 'localhost' && !accounts && !token) {
       console.error('Refusing to listen on a non-loopback address with --no-login unless --token is set: the server runs uploaded code.');
       return 2;
     }
-    const port = typeof f.port === 'string' ? Number(f.port) : 4173;
+    const port = typeof f.port === 'string' ? Number(f.port) : Number(process.env.PORT) || 4173;
     void import('./server/index.js').then(({ serve }) =>
-      serve({ port, host, token, accounts, secureCookies: !!f.https, dataDir: typeof f.data === 'string' ? f.data : '.heal-server' }).then(() => {
+      serve({ port, host, token, accounts, secureCookies: !!f.https || process.env.HEAL_HTTPS === '1',
+        allowCodeUploads: !f['no-code-uploads'] && !/^(off|0|no|false)$/i.test(process.env.HEAL_CODE_UPLOADS ?? ''), dataDir: typeof f.data === 'string' ? f.data : '.heal-server' }).then(() => {
         console.log(`Natural Healing web app: http://${host}:${port}${accounts ? '' : token ? `/?token=${token}` : ''}`);
         if (accounts) console.log('Open it and create the first account: that person becomes the admin and can add everyone else.');
       }),

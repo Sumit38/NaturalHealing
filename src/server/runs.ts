@@ -98,6 +98,8 @@ function casesCommand(file: string): string {
 
 export interface RunManagerOptions {
   dataDir: string;
+  /** How many runs may execute at the same time; the rest wait as 'queued'. Default 3, or HEAL_MAX_RUNS. */
+  maxConcurrent?: number;
   /** Kill a run that takes longer than this. */
   timeoutMs?: number;
 }
@@ -109,10 +111,14 @@ export class RunManager {
   /** The application database. Shared with the web layer for accounts and test-case suites. */
   readonly app: AppDb;
   private readonly procs = new Map<string, ChildProcess>();
+  private readonly maxConcurrent: number;
+  private active = 0;
+  private readonly waiting: (() => void)[] = [];
 
   constructor(opts: RunManagerOptions) {
     this.dir = resolve(opts.dataDir);
     this.timeoutMs = opts.timeoutMs ?? 15 * 60_000;
+    this.maxConcurrent = Math.max(1, opts.maxConcurrent ?? (Number(process.env.HEAL_MAX_RUNS) || 3));
     mkdirSync(join(this.dir, 'runs'), { recursive: true });
     this.app = new AppDb(join(this.dir, 'app.db'));
     this.app.importLegacy(this.dir);
@@ -273,7 +279,20 @@ export class RunManager {
     this.save({ ...run, status, exitCode, finishedAt: new Date().toISOString() });
   }
 
+  /** Starts a run when a slot is free. Until then it stays queued. */
   private async start(run: Run, extraEnv: NodeJS.ProcessEnv = {}) {
+    if (this.active >= this.maxConcurrent) await new Promise<void>((go) => this.waiting.push(go));
+    this.active++;
+    try {
+      // A run deleted while it waited has nothing left to run.
+      if (this.get(run.id)) await this.execute(run, extraEnv);
+    } finally {
+      this.active--;
+      this.waiting.shift()?.();
+    }
+  }
+
+  private async execute(run: Run, extraEnv: NodeJS.ProcessEnv) {
     const log = createWriteStream(this.logFile(run.id), { flags: 'a' });
     // Zips often wrap everything in one top-level folder; run from there.
     const cwd = projectRoot(this.projectDir(run.id));

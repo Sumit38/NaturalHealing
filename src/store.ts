@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
-import { openDb, transaction, type DatabaseSync } from './db.js';
+import { openDb, retryBusy, transaction, type DatabaseSync } from './db.js';
 import type { Fingerprint } from './model.js';
 
 /**
@@ -15,9 +15,10 @@ export class FingerprintStore {
   constructor(private readonly file: string) {
     if (file.endsWith('.db')) {
       this.db = openDb(file);
-      this.db.exec('CREATE TABLE IF NOT EXISTS fingerprints (key TEXT PRIMARY KEY, json TEXT NOT NULL)');
+      const db = this.db;
+      retryBusy(() => db.exec('CREATE TABLE IF NOT EXISTS fingerprints (key TEXT PRIMARY KEY, json TEXT NOT NULL)'));
       const legacy = file.replace(/\.db$/, '.json');
-      const empty = (this.db.prepare('SELECT COUNT(*) AS n FROM fingerprints').get() as { n: number }).n === 0;
+      const empty = (retryBusy(() => db.prepare('SELECT COUNT(*) AS n FROM fingerprints').get()) as { n: number }).n === 0;
       if (empty && existsSync(legacy)) {
         try {
           const old = JSON.parse(readFileSync(legacy, 'utf8')) as Record<string, Fingerprint>;

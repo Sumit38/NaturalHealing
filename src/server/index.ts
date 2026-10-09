@@ -25,6 +25,10 @@ export interface ServerOptions {
   accounts?: boolean;
   /** Mark the session cookie Secure (set this when serving over HTTPS). */
   secureCookies?: boolean;
+  /** Allow uploading test code (Playwright/Selenium projects), which runs on this machine. Turn off on a shared server. Default true. */
+  allowCodeUploads?: boolean;
+  /** How many runs may execute at once. */
+  maxConcurrent?: number;
   timeoutMs?: number;
   maxUploadBytes?: number;
 }
@@ -33,7 +37,9 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const FRAMEWORKS: Framework[] = ['playwright', 'selenium', 'custom'];
 
 export function createApp(opts: ServerOptions = {}): { server: Server; runs: RunManager } {
-  const runs = new RunManager({ dataDir: opts.dataDir ?? '.heal-server', timeoutMs: opts.timeoutMs });
+  const runs = new RunManager({ dataDir: opts.dataDir ?? '.heal-server', timeoutMs: opts.timeoutMs, maxConcurrent: opts.maxConcurrent });
+  const codeUploads = opts.allowCodeUploads !== false;
+  const noCode = () => httpError(403, 'Uploading test code is turned off on this server. Use a use case or test cases instead.');
   const maxUpload = opts.maxUploadBytes ?? 100 * 1024 * 1024;
   const auth = new Auth(runs.app.db);
   const suites = new SuiteStore(runs.app.db);
@@ -57,6 +63,7 @@ export function createApp(opts: ServerOptions = {}): { server: Server; runs: Run
     const path = url.pathname;
     const method = req.method ?? 'GET';
 
+    if (path === '/healthz') return json(res, 200, { ok: true });
     if (path.startsWith('/demo/')) {
       const page = demoPage(path, url.searchParams.get('v') ?? '1');
       if (!page) return json(res, 404, { error: 'Not found.' });
@@ -71,7 +78,7 @@ export function createApp(opts: ServerOptions = {}): { server: Server; runs: Run
 
     if (path === '/api/auth/state' && method === 'GET') {
       const me = opts.accounts ? auth.fromRequest(req) : SYSTEM;
-      return json(res, 200, { accounts: !!opts.accounts, setup: !!opts.accounts && auth.userCount() === 0, user: me ?? null });
+      return json(res, 200, { accounts: !!opts.accounts, setup: !!opts.accounts && auth.userCount() === 0, user: me ?? null, codeUploads });
     }
     if (opts.accounts) {
       // The cookie is SameSite=Strict; this also refuses any state-changing request (sign-in and sign-out included) that names another site as its origin.
@@ -256,6 +263,7 @@ export function createApp(opts: ServerOptions = {}): { server: Server; runs: Run
     }
 
     if (path === '/api/runs' && method === 'POST') {
+      if (!codeUploads) throw noCode();
       const framework = (url.searchParams.get('framework') ?? 'playwright') as Framework;
       if (!FRAMEWORKS.includes(framework)) throw httpError(400, `framework must be one of ${FRAMEWORKS.join(', ')}`);
       const filename = url.searchParams.get('filename') ?? 'tests.zip';
@@ -294,7 +302,10 @@ export function createApp(opts: ServerOptions = {}): { server: Server; runs: Run
         return res.end(readFileSync(file));
       }
       if (action === 'report' && method === 'GET') return json(res, 200, runs.report(id));
-      if (action === 'rerun' && method === 'POST') return json(res, 202, await runs.rerun(id));
+      if (action === 'rerun' && method === 'POST') {
+        if (!codeUploads && !run.kind && !run.demo) throw noCode();
+        return json(res, 202, await runs.rerun(id));
+      }
       if (action === 'scenarios' && method === 'GET') return json(res, 200, runs.scenarios(run.project));
       if (action === 'scenarios' && (method === 'PUT' || method === 'POST')) {
         const csv = (await readBody(req, 2_000_000)).toString();

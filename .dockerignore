@@ -1,0 +1,9 @@
+node_modules
+dist
+.git
+.heal
+.heal-server
+.tmp-*
+*.log
+examples
+test

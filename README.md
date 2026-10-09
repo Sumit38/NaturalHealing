@@ -64,6 +64,8 @@ Run it the same way: `npx heal run -- npx mocha`. Selenium cannot reach elements
 
 Only heals whose test then passed are applied. Heals below the auto level are applied only when a person passes `--approve <id>` (ids are shown by `heal report`). `heal pr` needs `git` and, for the pull request, the GitHub CLI (`gh`); use `--no-push` or `--no-pr` to stop earlier.
 
+**Hosting it for a team:** see [DEPLOY.md](DEPLOY.md) (Docker, settings, and why it does not run on Vercel).
+
 ## Sign in, use cases and test cases (no code needed)
 
 ```sh

@@ -10,7 +10,9 @@ import { FingerprintStore } from '../src/store.js';
 const fp = (i: number) => ({ node: { tag: 'a', role: 'link', name: String(i), text: '', attrs: {}, classes: [], ancestors: [], siblingIndex: 0, rect: { x: 0, y: 0, w: 1, h: 1 }, cssPath: 'a' }, viewport: { w: 1, h: 1 }, selector: '#' + i });
 
 describe('fingerprint store', () => {
+  // Many rounds, each on a brand-new database, because the risky moment is several processes creating it together.
   it('keeps every write when several processes save at once', async () => {
+   for (let round = 0; round < 8; round++) {
     const dir = mkdtempSync(join(tmpdir(), 'fp-'));
     const db = join(dir, 'fp.db');
     const script = join(dir, 'writer.mts');
@@ -24,7 +26,8 @@ for (let i = 0; i < 40; i++) s.set(who + '-' + i, ${JSON.stringify(fp(0))});`);
         (who) => new Promise<void>((done, fail) => execFile('node', ['--import', tsx, script, db, who], { timeout: 60_000 }, (err) => (err ? fail(err) : done()))),
       ),
     );
-    assert.equal(new FingerprintStore(db).count(), 160);
+    assert.equal(new FingerprintStore(db).count(), 160, 'round ' + round);
+   }
   });
 
   it('imports an old fingerprints.json the first time a .db is opened', () => {

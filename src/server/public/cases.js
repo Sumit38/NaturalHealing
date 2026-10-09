@@ -8,6 +8,7 @@
   let wantExample = false;
   let S = null; // the test-case set being reviewed: { suite, dirty, open, reads, timers }
   let imp = null; // the upload wizard
+  let codeUploads = true;
 
   const parse = async (res) => {
     let body = {};
@@ -68,8 +69,15 @@
     const st = await fetch('/api/auth/state', { headers: authHeaders }).then((r) => r.json());
     accounts = st.accounts;
     me = st.user;
+    codeUploads = st.codeUploads !== false;
     if (accounts && !me) return showAuth(st.setup);
     renderUser();
+    if (!codeUploads) {
+      // Uploading test code is off on this server: keep the release demo, drop the upload form.
+      document.querySelectorAll('#view-new .card').forEach((c) => c.classList.add('hidden'));
+      const link = document.querySelector('.nav a[data-nav="code"]');
+      if (link) link.textContent = 'Release demo';
+    }
     try { ai = await get('/ai'); } catch { /* the AI helper is optional */ }
     route();
   }
@@ -101,7 +109,7 @@
       el('div', { class: 'paths' },
         path('📝', 'I have a use case', 'Describe what the app should do. We write the test cases, and you download them as Excel or CSV.', '#/usecases', 'Generate test cases'),
         path('📋', 'I have test cases', 'Upload your Excel or CSV. We read every step, you confirm what we understood, then we run them and give you a confidence score.', '#/cases/new', 'Upload test cases'),
-        path('💻', 'I have test code', 'A Playwright or Selenium project as a zip. Nothing in your tests needs to change.', '#/code', 'Upload a project')),
+        ...(codeUploads ? [path('💻', 'I have test code', 'A Playwright or Selenium project as a zip. Nothing in your tests needs to change.', '#/code', 'Upload a project')] : [])),
       el('div', { class: 'demo' },
         el('div', { style: 'flex:1;min-width:240px' }, el('b', { text: 'New here? Watch it work.' }),
           el('p', { text: 'Try the sample use case: we write test cases for a sign-in page, run them in a browser and show the results. Or watch a full release cycle with a real bug and its fix.' })),

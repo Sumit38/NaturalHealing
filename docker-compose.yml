@@ -1,0 +1,22 @@
+# docker compose up -d --build     then open http://localhost:8080 and create the first (admin) account.
+services:
+  natural-healing:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      # Optional: lets the "Improve with AI" option work. The use case text is sent to Anthropic.
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      # How many test runs may execute at once; the rest wait their turn.
+      HEAL_MAX_RUNS: ${HEAL_MAX_RUNS:-3}
+      # Set to 1 when the app is served over HTTPS (behind a proxy); makes the sign-in cookie Secure.
+      HEAL_HTTPS: ${HEAL_HTTPS:-0}
+      # "on" lets people upload Playwright/Selenium projects, which run code on this machine. Leave off on a shared server.
+      HEAL_CODE_UPLOADS: ${HEAL_CODE_UPLOADS:-off}
+    volumes:
+      - heal-data:/data
+    shm_size: "1gb" # Chrome needs more shared memory than the Docker default
+    restart: unless-stopped
+
+volumes:
+  heal-data:
