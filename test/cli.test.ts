@@ -9,7 +9,7 @@ import assert from 'node:assert/strict';
 const root = resolve('.');
 const url = (p: string) => pathToFileURL(join(root, p)).href;
 const tsx = url('node_modules/tsx/dist/esm/index.mjs');
-const exe = ['/opt/pw-browsers/chromium-1194/chrome-linux/chrome'].find(existsSync);
+import { launchOptions } from './launch.js';
 const env = { ...process.env, GIT_AUTHOR_NAME: 't', GIT_AUTHOR_EMAIL: 't@t', GIT_COMMITTER_NAME: 't', GIT_COMMITTER_EMAIL: 't@t' };
 
 const spec = `
@@ -18,7 +18,7 @@ import { BASE_SAVE, page as app } from '${url('demo/app.ts')}';
 import { Healer } from '${url('src/index.ts')}';
 const v2 = process.env.PAGE_VERSION === 'v2';
 const html = app(v2 ? BASE_SAVE.replace('saveBtn', 'coloredButton') : undefined);
-const browser = await chromium.launch({ executablePath: ${JSON.stringify(exe)}, args: ['--no-sandbox'] });
+const browser = await chromium.launch(${JSON.stringify(launchOptions)});
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
 const healer = new Healer();
 healer.beginTest('save profile');

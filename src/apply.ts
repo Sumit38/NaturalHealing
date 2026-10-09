@@ -6,6 +6,8 @@ import { patchSelector } from './patcher.js';
 export interface ApplyOptions {
   /** Record ids a human approved even though confidence was below the auto level. */
   approve?: string[];
+  /** Apply exactly these record ids (still only verified ones), whatever their confidence. Overrides the other options. */
+  only?: string[];
   /** Apply only records at or above this confidence (defaults to each record's own verdict). */
   minConfidence?: number;
 }
@@ -15,7 +17,7 @@ export function applyRecords(records: HealRecord[], opts: ApplyOptions = {}): He
   const done: HealRecord[] = [];
   for (const r of records) {
     const approved = opts.approve?.includes(r.id) ?? false;
-    const eligible = r.verdict === 'auto' || approved || (opts.minConfidence !== undefined && r.confidence >= opts.minConfidence);
+    const eligible = opts.only ? opts.only.includes(r.id) : r.verdict === 'auto' || approved || (opts.minConfidence !== undefined && r.confidence >= opts.minConfidence);
     if (r.status !== 'verified' || !eligible || !r.file || !r.newSelector) continue;
     const res = patchSelector(r.file, r.oldSelector, r.newSelector);
     r.status = res.applied ? 'patched' : 'needs-review';

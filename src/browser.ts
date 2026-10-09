@@ -28,6 +28,9 @@ export const BROWSER_SRC = `(target) => {
       if (lab) return clean(lab.textContent);
     }
     const tag = el.tagName.toLowerCase();
+    // A checkbox or field inside its label takes the label's text.
+    const wrapping = tag === 'input' || tag === 'select' || tag === 'textarea' ? el.closest('label') : null;
+    if (wrapping && clean(wrapping.textContent)) return clean(wrapping.textContent);
     if (tag === 'input') return clean(el.getAttribute('placeholder') || el.getAttribute('value') || el.getAttribute('name'));
     const t = clean(el.textContent);
     return t.length > 80 ? t.slice(0, 80) : t;

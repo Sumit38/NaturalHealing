@@ -1,0 +1,506 @@
+/* Sign-in, use cases, test-case sets and the guided path. Uses the helpers defined in index.html (el, api, $, toast...). */
+(() => {
+  'use strict';
+  let me = null;
+  let accounts = false;
+  let ai = { available: false, model: '' };
+  let notice = null; // shown once at the top of the next test-case set
+  let wantExample = false;
+  let S = null; // the test-case set being reviewed: { suite, dirty, open, reads, timers }
+  let imp = null; // the upload wizard
+
+  const parse = async (res) => {
+    let body = {};
+    try { body = await res.json(); } catch { /* not JSON */ }
+    if (!res.ok) throw new Error(body.error || 'Something went wrong (' + res.status + ').');
+    return body;
+  };
+  const get = (path) => api(path).then(parse);
+  const send = (path, body, method = 'POST') => api(path, { method, headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }).then(parse);
+  const field = (label, input, hint) => el('label', { class: 'field' }, label, input, hint ? el('span', { class: 'hint', text: hint }) : null);
+  const text = (placeholder = '', value = '') => el('input', { type: 'text', placeholder, value, autocomplete: 'off' });
+  const pct = (v) => Math.round(v * 100);
+  const level = (v) => (v >= 0.85 ? 'good' : v >= 0.6 ? 'mid' : 'low');
+  const confPill = (v, label = '') => el('span', { class: 'pill ' + level(v), text: (label ? label + ' ' : '') + pct(v) + '%' });
+  const fail = (e) => toast(e.message || String(e));
+  const downloadBlob = async (path, name) => {
+    const res = await api(path);
+    if (!res.ok) return fail(new Error('Could not download that file.'));
+    el('a', { href: URL.createObjectURL(await res.blob()), download: name }).click();
+  };
+
+  /* ---------- sign in ---------- */
+  function showAuth(setup) {
+    const box = $('auth');
+    box.classList.remove('hidden');
+    const email = text('you@company.com');
+    const name = text('Your name');
+    const pw = el('input', { type: 'password', placeholder: 'At least 8 characters', autocomplete: setup ? 'new-password' : 'current-password' });
+    const err = el('div', { class: 'err' });
+    const go = async () => {
+      err.textContent = '';
+      try {
+        await send(setup ? '/auth/setup' : '/auth/login', { email: email.value, name: name.value, password: pw.value });
+        box.classList.add('hidden');
+        await start();
+      } catch (e) { err.textContent = e.message; }
+    };
+    pw.onkeydown = (e) => { if (e.key === 'Enter') go(); };
+    box.replaceChildren(el('div', { class: 'box' },
+      el('h1', { text: setup ? 'Welcome to Natural Healing' : 'Sign in' }),
+      el('p', { text: setup ? 'Create the first account. This person becomes the admin and can add everyone else.' : 'Use the account your admin created for you.' }),
+      field('Email', email), setup ? field('Your name', name) : null, field('Password', pw), err,
+      el('button', { class: 'btn primary big', text: setup ? 'Create account' : 'Sign in', onclick: go })));
+    email.focus();
+  }
+  Ext.auth = () => { if (accounts && $('auth').classList.contains('hidden')) showAuth(false); };
+
+  function renderUser() {
+    const chip = $('userChip');
+    chip.replaceChildren();
+    $('nav-team').classList.toggle('hidden', !(accounts && me && me.role === 'admin'));
+    if (!accounts || !me) return;
+    chip.append(el('span', { class: 'chip-user' }, el('b', { text: me.name }), el('span', { text: me.role }),
+      el('button', { class: 'btn', text: 'Sign out', onclick: async () => { await api('/auth/logout', { method: 'POST' }); location.hash = '#/'; location.reload(); } })));
+  }
+
+  async function start() {
+    const st = await fetch('/api/auth/state', { headers: authHeaders }).then((r) => r.json());
+    accounts = st.accounts;
+    me = st.user;
+    if (accounts && !me) return showAuth(st.setup);
+    renderUser();
+    try { ai = await get('/ai'); } catch { /* the AI helper is optional */ }
+    route();
+  }
+  Ext.boot = start;
+
+  /* ---------- routes ---------- */
+  Ext.handlers.push(async (h) => {
+    try {
+      if (h === '') { showView('view-home'); setNav('home'); renderHome(); return true; }
+      if (h === 'usecases') { showView('view-usecases'); setNav('usecases'); renderUseCases(); return true; }
+      if (h === 'cases') { showView('view-cases'); setNav('cases'); await renderCases(); return true; }
+      if (h === 'cases/new') { showView('view-import'); setNav('cases'); renderImport(); return true; }
+      if (h === 'team') { showView('view-team'); setNav('team'); await renderTeam(); return true; }
+      const m = h.match(/^suite\/(\d+)$/);
+      if (m) { showView('view-suite'); setNav('cases'); await renderSuite(m[1]); return true; }
+    } catch (e) { fail(e); }
+    return false;
+  });
+
+  /* ---------- home ---------- */
+  const path = (icon, title, body, href, go) =>
+    el('a', { class: 'path', href }, el('div', { class: 'ico', text: icon }), el('h3', { text: title }), el('p', { text: body }), el('span', { class: 'go', text: go + ' →' }));
+
+  function renderHome() {
+    $('view-home').replaceChildren(
+      el('div', { class: 'hero' },
+        el('h1', {}, 'Test your web app. ', el('em', { text: 'We write, run and heal the tests.' })),
+        el('p', { text: 'Start from whatever you have: a description of what the app should do, test cases in a spreadsheet, or test code. When a button or field changes, the test finds it again instead of failing.' })),
+      el('div', { class: 'paths' },
+        path('📝', 'I have a use case', 'Describe what the app should do. We write the test cases, and you download them as Excel or CSV.', '#/usecases', 'Generate test cases'),
+        path('📋', 'I have test cases', 'Upload your Excel or CSV. We read every step, you confirm what we understood, then we run them and give you a confidence score.', '#/cases/new', 'Upload test cases'),
+        path('💻', 'I have test code', 'A Playwright or Selenium project as a zip. Nothing in your tests needs to change.', '#/code', 'Upload a project')),
+      el('div', { class: 'demo' },
+        el('div', { style: 'flex:1;min-width:240px' }, el('b', { text: 'New here? Watch it work.' }),
+          el('p', { text: 'Try the sample use case: we write test cases for a sign-in page, run them in a browser and show the results. Or watch a full release cycle with a real bug and its fix.' })),
+        el('button', { class: 'btn primary', text: 'Try the sample use case', onclick: () => { wantExample = true; location.hash = '#/usecases'; } }),
+        el('button', { class: 'btn', text: 'Watch the release demo', onclick: () => { location.hash = '#/code'; setTimeout(() => $('demoBtn').click(), 50); } })),
+      el('h3', { class: 'sec', text: 'Recent runs' }), el('div', { class: 'runs', id: 'recent' }));
+    loadRuns();
+  }
+
+  /* ---------- use cases ---------- */
+  function renderUseCases() {
+    const box = $('view-usecases');
+    const title = text('Optional: a name for these test cases');
+    const body = el('textarea', { rows: 14, placeholder: 'Paste your use case here, for example:\n\nUse Case: User login\nActor: Registered customer\nMain Flow:\n1. The user opens the login page\n2. The user enters email and password\n3. The user clicks the Sign in button\n4. The system shows the dashboard\nAlternate Flows:\nA1. Wrong password: the system shows "Invalid credentials"\nBusiness Rules:\n- The password must be at least 8 characters' });
+    const start_ = text('Optional: /login (the page to open first)');
+    const app = text('Optional: https://staging.yourapp.com (used when you run them)');
+    const data = el('textarea', { rows: 3, placeholder: 'Optional, one per line:\nemail=sam@example.com\npassword=Secret123!' });
+    let method = 'rules';
+    const radios = el('div', { class: 'radios' });
+    const paint = () => {
+      radios.replaceChildren(...[
+        ['rules', 'Standard (works offline)', 'Reads your headings and steps and writes positive, negative, boundary and alternate-flow cases. Nothing leaves this server.', true],
+        ['ai', 'Improve with AI (Claude)', ai.available ? 'Writes broader cases from the same text. The use case is sent to Anthropic. If it fails, the standard method is used instead.' : 'Not set up on this server. An admin can enable it by setting ANTHROPIC_API_KEY.', ai.available],
+      ].map(([v, t, d, enabled]) => el('label', { class: 'radio' + (method === v ? ' on' : '') + (enabled ? '' : ' off') },
+        el('input', { type: 'radio', name: 'method', value: v, checked: method === v, disabled: !enabled, onchange: () => { method = v; paint(); } }), el('div', {}, el('b', { text: t }), el('span', { text: d })))));
+    };
+    paint();
+    const file = el('input', { type: 'file', accept: '.txt,.md,.csv,.xlsx', class: 'hidden', onchange: async () => {
+      const f = file.files[0];
+      if (!f) return;
+      try {
+        const out = await api('/usecases/read?filename=' + encodeURIComponent(f.name), { method: 'POST', body: f }).then(parse);
+        body.value = out.text;
+        if (!title.value) title.value = f.name.replace(/\.[^.]+$/, '');
+      } catch (e) { fail(e); }
+    } });
+    const err = el('div', { class: 'err' });
+    const go = el('button', { class: 'btn primary big', text: '✨ Generate test cases' });
+    go.onclick = async () => {
+      err.textContent = '';
+      go.disabled = true;
+      go.textContent = method === 'ai' ? 'Asking Claude…' : 'Generating…';
+      try {
+        const out = await send('/usecases/generate', { title: title.value, text: body.value, method, startPage: start_.value, testData: data.value, appUrl: app.value });
+        notice = { notes: out.notes, by: out.by, fallbackReason: out.fallbackReason, fresh: true };
+        location.hash = '#/suite/' + out.suite.id;
+      } catch (e) { err.textContent = e.message; }
+      go.disabled = false;
+      go.textContent = '✨ Generate test cases';
+    };
+    box.replaceChildren(
+      el('div', { class: 'hero' }, el('h1', {}, 'Describe the use case. ', el('em', { text: 'Get test cases.' })),
+        el('p', { text: 'Paste it or upload a text, Markdown, CSV or Excel file. You review the generated cases, download them, and run them when you are ready.' })),
+      el('section', { class: 'card' },
+        el('h2', {}, el('span', { class: 'n', text: '1' }), 'Your use case'),
+        el('p', { class: 'sub', text: 'Headings such as Main Flow, Alternate Flows, Business Rules and Given/When/Then are recognised. Plain sentences work too.' }),
+        el('div', { class: 'body' }, body, el('div', { class: 'row', style: 'margin-top:10px' },
+          el('button', { class: 'btn', text: '📎 Upload a file', onclick: () => file.click() }), file,
+          el('button', { class: 'btn', text: 'Use the sample', onclick: async () => { const ex = await get('/example'); body.value = ex.useCase; data.value = Object.entries(ex.testData).map(([k, v]) => k + '=' + v).join('\n'); app.value = location.origin + '/demo/login?v=1'; title.value = 'Sign in to Acme (sample)'; } }),
+          el('span', { class: 'hint', text: 'Word and PDF files: copy the text and paste it above.' })))),
+      el('section', { class: 'card' },
+        el('h2', {}, el('span', { class: 'n', text: '2' }), 'Details (all optional)'),
+        el('div', { class: 'body' }, el('div', { class: 'adv' }, field('Name', title), field('First page to open', start_), field('App link', app)),
+          el('div', { style: 'margin-top:12px' }, field('Test data to use', data, 'Without it, sample values are used and flagged for you to replace.')))),
+      el('section', { class: 'card' },
+        el('h2', {}, el('span', { class: 'n', text: '3' }), 'How should we write them?'), el('div', { class: 'body' }, radios,
+          el('div', { class: 'cta' }, go, err))));
+    if (wantExample) {
+      wantExample = false;
+      get('/example').then((ex) => { body.value = ex.useCase; data.value = Object.entries(ex.testData).map(([k, v]) => k + '=' + v).join('\n'); app.value = location.origin + '/demo/login?v=1'; title.value = 'Sign in to Acme (sample)'; });
+    }
+  }
+
+  /* ---------- the list of test-case sets ---------- */
+  async function renderCases() {
+    const list = await get('/suites');
+    const box = $('view-cases');
+    box.replaceChildren(
+      el('div', { class: 'hero' }, el('h1', { text: 'Test cases' }), el('p', { text: 'Every set you generated or uploaded. Open one to review how each step was understood, edit it, download it, or run it.' })),
+      el('div', { class: 'row', style: 'margin-top:16px' },
+        el('a', { class: 'btn primary', href: '#/cases/new', text: '📋 Upload test cases' }), el('a', { class: 'btn', href: '#/usecases', text: '📝 Generate from a use case' })),
+      el('div', { class: 'runs', style: 'margin-top:16px' }, ...(list.length ? list.map((x) =>
+        el('div', { class: 'run', onclick: () => { location.hash = '#/suite/' + x.id; } },
+          el('div', { class: 'nm', text: x.title }), el('div', { class: 'mt', text: `${x.cases} test case${x.cases === 1 ? '' : 's'} · ${x.source === 'generated' ? 'generated from a use case' : 'uploaded'} · ${when(x.updatedAt)}` }),
+          el('div', { class: 'stats' }, el('span', { class: 'badge b-' + (x.source === 'generated' ? 'info' : 'ok'), text: x.source }),
+            el('button', { class: 'btn', text: 'Delete', onclick: async (e) => { e.stopPropagation(); if (confirm('Delete "' + x.title + '"?')) { await api('/suites/' + x.id, { method: 'DELETE' }); renderCases(); } } })))) : [el('div', { class: 'empty', text: 'Nothing here yet. Generate test cases from a use case, or upload a spreadsheet.' })])));
+  }
+
+  /* ---------- upload wizard ---------- */
+  const FIELD_LABEL = { id: 'ID', title: 'Title', area: 'Area / module', priority: 'Priority', type: 'Type', preconditions: 'Preconditions', steps: 'Steps (required)', expected: 'Expected result', basis: 'Basis (stated / assumed)' };
+  function renderImport() { imp = { step: 1 }; drawImport(); }
+  function drawImport() {
+    const box = $('view-import');
+    const stepper = el('div', { class: 'stepper' }, ...['1 Upload', '2 Match the columns', '3 Review and run'].map((t, i) => el('span', { class: i + 1 === imp.step ? 'on' : i + 1 < imp.step ? 'done' : '', text: t })));
+    const head = el('div', { class: 'hero' }, el('h1', {}, 'Upload your test cases. ', el('em', { text: 'We follow you through it.' })), el('p', { text: 'Excel or CSV. Any column names: you tell us which column is which.' }));
+    if (imp.step === 1) {
+      const file = el('input', { type: 'file', accept: '.xlsx,.csv,.txt', class: 'hidden' });
+      const drop = el('div', { class: 'drop', tabindex: 0, role: 'button' }, el('div', { class: 'big', text: '📋' }), el('div', {}, el('b', { text: 'Drop your Excel or CSV file here' })), el('div', { text: 'or click to choose a file' }));
+      const take = async (f) => {
+        if (!f) return;
+        drop.classList.add('has');
+        try {
+          const out = await api('/imports?filename=' + encodeURIComponent(f.name), { method: 'POST', body: f }).then(parse);
+          imp = { ...out, step: 2, hasHeader: out.hasHeader, title: f.name.replace(/\.[^.]+$/, ''), app: '' };
+          drawImport();
+        } catch (e) { drop.classList.remove('has'); fail(e); }
+      };
+      drop.onclick = () => file.click();
+      file.onchange = () => take(file.files[0]);
+      drop.ondragover = (e) => { e.preventDefault(); drop.classList.add('over'); };
+      drop.ondragleave = () => drop.classList.remove('over');
+      drop.ondrop = (e) => { e.preventDefault(); drop.classList.remove('over'); take(e.dataTransfer.files[0]); };
+      box.replaceChildren(head, stepper, el('section', { class: 'card' }, drop, file,
+        el('p', { class: 'hint', style: 'margin-top:12px', text: 'Steps can be in one cell (one per line, numbered or not) or one per row. Old .xls files: save them as .xlsx or CSV first.' }),
+        el('div', { class: 'cta' }, el('a', { class: 'btn', href: '#/usecases', text: 'I only have a use case' }))));
+      return;
+    }
+    // step 2: match columns
+    const selects = {};
+    const mapGrid = el('div', { class: 'mapgrid' }, ...imp.fields.map((f) => {
+      const sel = el('select', {}, el('option', { value: -1, text: '(none)' }), ...imp.header.map((h, i) => el('option', { value: i, text: `${String.fromCharCode(65 + (i % 26))}: ${h || '(blank)'}`, selected: imp.mapping[f] === i })));
+      selects[f] = sel;
+      return field(FIELD_LABEL[f], sel);
+    }));
+    const title = text('', imp.title);
+    const app = text('https://staging.yourapp.com', imp.app || '');
+    const err = el('div', { class: 'err' });
+    const confirmBtn = el('button', { class: 'btn primary big', text: 'Continue: read my steps' });
+    confirmBtn.onclick = async () => {
+      err.textContent = '';
+      confirmBtn.disabled = true;
+      try {
+        const mapping = Object.fromEntries(imp.fields.map((f) => [f, Number(selects[f].value)]));
+        const out = await send(`/imports/${imp.importId}/confirm`, { mapping, hasHeader: imp.hasHeader, title: title.value, appUrl: app.value });
+        notice = { warnings: out.warnings, fresh: true };
+        location.hash = '#/suite/' + out.suite.id;
+      } catch (e) { err.textContent = e.message; }
+      confirmBtn.disabled = false;
+    };
+    box.replaceChildren(head, stepper,
+      el('section', { class: 'card' },
+        el('h2', { text: `We found ${imp.rowCount} row${imp.rowCount === 1 ? '' : 's'} in ${imp.filename}` }),
+        el('p', { class: 'sub', style: 'margin-left:0', text: imp.hasHeader ? 'The first row looks like headings. We guessed which column is which. Fix anything that is wrong.' : 'There is no heading row, so choose the columns below.' }),
+        el('div', { class: 'tblwrap' }, el('table', { class: 'tbl' }, el('thead', {}, el('tr', {}, ...imp.header.map((h) => el('th', { text: h })))),
+          el('tbody', {}, ...imp.preview.map((r) => el('tr', {}, ...imp.header.map((_, i) => el('td', { text: (r[i] || '').slice(0, 120) }))))))),
+        mapGrid,
+        el('div', { class: 'adv' }, field('Name this set', title), field('App link (optional now, needed to run)', app)),
+        el('div', { class: 'cta' }, confirmBtn, el('button', { class: 'btn', text: 'Start over', onclick: renderImport }), err)));
+  }
+
+  /* ---------- review, edit, download and run one set ---------- */
+  const strip = (suite) => suite.cases.map((c) => ({ id: c.id, title: c.title, area: c.area, priority: c.priority, type: c.type, preconditions: c.preconditions, steps: c.steps, expected: c.expected, source: c.source }));
+  const allSteps = () => S.suite.cases.flatMap((c) => c.interpreted);
+
+  async function renderSuite(id) {
+    const suite = await get('/suites/' + id);
+    S = { suite, dirty: false, open: new Set(suite.cases.filter((c) => c.interpreted.some((s) => s.confidence < 0.6)).map((c) => c.id)), reads: {}, timers: {} };
+    if (S.open.size === 0 && suite.cases[0]) S.open.add(suite.cases[0].id);
+    drawSuite();
+  }
+
+  const mean = (xs) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0);
+  const tileEl = (v, k, sub, cls = '') => el('div', { class: 'tile ' + cls }, el('div', { class: 'v', text: v }), el('div', { class: 'k', text: k }), sub ? el('div', { class: 's', text: sub }) : null);
+
+  function paintRead(box, st, caseId, index) {
+    box.replaceChildren();
+    if (!st.text.trim()) { box.append(el('span', { text: 'Write what should happen in this step.' })); return; }
+    box.append(el('span', { class: 'tag', text: st.action === 'unknown' ? 'not understood' : st.action }), el('span', { text: st.action === 'unknown' ? (st.notes[0] || '') : st.summary }), confPill(st.confidence));
+    if (st.action !== 'unknown') for (const n of st.notes.slice(0, 1)) box.append(el('span', { text: '· ' + n }));
+    if (st.confidence < 0.6 && ai.available) {
+      box.append(el('button', { class: 'mini', text: '✨ Suggest a rewrite', onclick: async (e) => {
+        e.target.disabled = true;
+        try {
+          const out = await send('/steps/improve', { steps: [st.text] });
+          const better = out.steps[0];
+          const row = box.parentElement;
+          const old = row.querySelector('.sugg');
+          if (old) old.remove();
+          row.append(el('div', { class: 'sugg' }, el('span', {}, 'Suggestion: ', el('b', { text: better.text })), confPill(better.confidence),
+            el('button', { class: 'mini', text: 'Use it', onclick: () => { applyStep(caseId, index, better.text); } }), el('button', { class: 'mini', text: 'Keep mine', onclick: (ev) => ev.target.closest('.sugg').remove() })));
+        } catch (err) { fail(err); }
+        e.target.disabled = false;
+      } }));
+    }
+  }
+
+  function applyStep(caseId, index, textValue) {
+    const c = S.suite.cases.find((x) => x.id === caseId);
+    c.steps[index] = textValue;
+    markDirty();
+    drawSuite();
+  }
+
+  function reinterpret(c) {
+    clearTimeout(S.timers[c.id]);
+    S.timers[c.id] = setTimeout(async () => {
+      try {
+        const out = await send('/steps/interpret', { steps: c.steps });
+        c.interpreted = out.steps;
+        (S.reads[c.id] || []).forEach((box, i) => { if (box && c.interpreted[i]) paintRead(box, c.interpreted[i], c.id, i); });
+        paintSummary();
+      } catch { /* try again on the next keystroke */ }
+    }, 350);
+  }
+
+  function markDirty() {
+    S.dirty = true;
+    const bar = $('savebar');
+    if (bar) bar.classList.remove('hidden');
+  }
+
+  async function saveSuite() {
+    const out = await send('/suites/' + S.suite.id, { title: S.suite.title, appUrl: $('suiteApp') ? $('suiteApp').value.trim() : S.suite.appUrl, cases: strip(S.suite) }, 'PUT');
+    S.suite = out;
+    S.dirty = false;
+    drawSuite();
+    toast('Saved.');
+  }
+
+  function paintSummary() {
+    const box = $('suiteTiles');
+    if (!box) return;
+    const steps = allSteps();
+    const weak = steps.filter((s) => s.confidence < 0.6).length;
+    box.replaceChildren(
+      tileEl(String(S.suite.cases.length), 'Test cases', `${steps.length} steps`),
+      tileEl(pct(mean(steps.map((s) => s.confidence))) + '%', 'Understood', 'how sure we are we read the steps right', weak ? 'warn' : 'good'),
+      tileEl(String(weak), weak === 1 ? 'Step needs you' : 'Steps need you', weak ? 'rewrite them below before running' : 'nothing unclear', weak ? 'warn' : 'good'));
+  }
+
+  function caseCard(c) {
+    const weak = c.interpreted.filter((s) => s.confidence < 0.6).length;
+    const reads = [];
+    S.reads[c.id] = reads;
+    const stepsBox = el('div');
+    const drawSteps = () => {
+      reads.length = 0;
+      stepsBox.replaceChildren(...c.steps.map((st, i) => {
+        const input = el('input', { type: 'text', value: st, placeholder: 'e.g. Click the "Sign in" button' });
+        const read = el('div', { class: 'read' });
+        reads[i] = read;
+        const it = c.interpreted[i] || { text: st, action: 'unknown', confidence: 0, notes: [], summary: '' };
+        paintRead(read, it, c.id, i);
+        const row = el('div', { class: 'stepline' + (it.confidence < 0.6 && st.trim() ? ' weak' : '') + (it.action === 'unknown' && st.trim() ? ' bad' : '') },
+          el('div', { class: 'n', text: String(i + 1) }), input,
+          el('button', { class: 'mini', text: '✕', title: 'Remove this step', onclick: () => { c.steps.splice(i, 1); c.interpreted.splice(i, 1); markDirty(); drawSteps(); reinterpret(c); paintSummary(); } }), read);
+        input.oninput = () => {
+          c.steps[i] = input.value;
+          c.interpreted[i] = { text: input.value, action: 'unknown', confidence: 0, notes: ['Reading…'], summary: '' };
+          markDirty();
+          reinterpret(c);
+        };
+        return row;
+      }));
+    };
+    drawSteps();
+    const d = el('details', { class: 'case' });
+    d.open = S.open.has(c.id);
+    d.ontoggle = () => (d.open ? S.open.add(c.id) : S.open.delete(c.id));
+    const title = el('input', { type: 'text', value: c.title });
+    title.oninput = () => { c.title = title.value; markDirty(); };
+    const expected = el('textarea', { rows: 2, placeholder: 'What should happen overall?' });
+    expected.value = c.expected || '';
+    expected.oninput = () => { c.expected = expected.value; markDirty(); };
+    const pre = el('textarea', { rows: 1, placeholder: 'Anything that must be true before step 1' });
+    pre.value = c.preconditions || '';
+    pre.oninput = () => { c.preconditions = pre.value; markDirty(); };
+    d.append(
+      el('summary', {}, el('b', { text: c.id }), el('span', { text: c.title }), c.type ? el('span', { class: 'pill', text: c.type }) : null, c.priority ? el('span', { class: 'pill', text: c.priority }) : null, c.basis === 'assumed' ? el('span', { class: 'pill mid', title: 'The use case does not say what should happen here, so the expected result is a guess.', text: 'assumed' }) : null,
+        el('span', { class: 'spacer' }), weak ? el('span', { class: 'pill mid', text: weak + ' to check' }) : confPill(mean(c.interpreted.map((s) => s.confidence)))),
+      el('div', { class: 'body2' }, field('Title', title), c.preconditions !== undefined || true ? field('Before you start', pre) : null, el('div', {}, el('b', { text: 'Steps' }), stepsBox),
+        el('div', { class: 'row' }, el('button', { class: 'btn', text: '+ Add a step', onclick: () => { c.steps.push(''); c.interpreted.push({ text: '', action: 'unknown', confidence: 0, notes: [], summary: '' }); markDirty(); drawSteps(); } }),
+          el('span', { class: 'spacer' }), el('button', { class: 'btn danger', text: 'Delete this test case', onclick: () => { if (confirm('Delete ' + c.id + '?')) { S.suite.cases = S.suite.cases.filter((x) => x !== c); markDirty(); drawSuite(); } } })),
+        field('Expected result', expected)));
+    return d;
+  }
+
+  function drawSuite() {
+    const box = $('view-suite');
+    const s = S.suite;
+    const title = el('input', { type: 'text', class: 'title', value: s.title });
+    title.oninput = () => { s.title = title.value; markDirty(); };
+    const app = text('https://staging.yourapp.com', s.appUrl || '');
+    app.id = 'suiteApp';
+    app.oninput = () => markDirty();
+    const run = el('button', { class: 'btn primary big', text: '▶ Run these test cases' });
+    run.onclick = async () => {
+      const link = app.value.trim();
+      if (!/^https?:\/\/\S+$/i.test(link)) return toast('Enter the app link first, starting with http:// or https://');
+      run.disabled = true;
+      try {
+        if (S.dirty) await saveSuite();
+        else if (link !== s.appUrl) await send('/suites/' + s.id, { appUrl: link }, 'PUT');
+        const r = await send(`/suites/${s.id}/run`, { appUrl: link });
+        location.hash = '#/run/' + r.id;
+      } catch (e) { fail(e); }
+      run.disabled = false;
+    };
+    const notes = [];
+    if (notice && notice.fresh) {
+      if (notice.fallbackReason) notes.push(el('div', { class: 'note' }, el('b', { text: 'AI was not used. ' }), notice.fallbackReason + ' The standard method wrote these cases instead.'));
+      else if (notice.by === 'ai') notes.push(el('div', { class: 'note good', text: 'Written with Claude. Every step was checked against the step reader; review them before you run.' }));
+      for (const n of (notice.notes || []).slice(0, 8)) notes.push(el('div', { class: 'note', text: n }));
+      for (const w of notice.warnings || []) notes.push(el('div', { class: 'note', text: w }));
+      notice = null;
+    }
+    box.replaceChildren(
+      el('p', { class: 'crumb' }, el('a', { href: '#/cases', text: '← All test cases' })),
+      el('div', { class: 'suite-head' }, title, el('span', { class: 'badge b-' + (s.source === 'generated' ? 'info' : 'ok'), text: s.source }),
+        el('button', { class: 'btn', text: '⬇ Excel', onclick: () => downloadBlob(`/suites/${s.id}/download?format=xlsx`, s.title.replace(/[^\w.-]+/g, '_') + '.xlsx') }),
+        el('button', { class: 'btn', text: '⬇ CSV', onclick: () => downloadBlob(`/suites/${s.id}/download?format=csv`, s.title.replace(/[^\w.-]+/g, '_') + '.csv') })),
+      ...notes,
+      el('div', { class: 'tiles', id: 'suiteTiles' }),
+      el('div', { class: 'runbox' }, field('App link to test', app, 'Where the app lives. The test cases run in a real browser against it.'), run),
+      el('h3', { class: 'sec', text: 'Check how each step was read' }),
+      el('p', { class: 'hint', style: 'margin:-6px 0 12px', text: 'Every step is shown with what we understood and how sure we are. Anything under 60% needs a rewrite, because we will not guess what you meant.' }),
+      ...s.cases.map(caseCard),
+      el('div', { class: 'row', style: 'margin-top:8px' }, el('button', { class: 'btn', text: '+ Add a test case', onclick: () => {
+        const n = s.cases.length + 1;
+        s.cases.push({ id: 'TC-' + String(n).padStart(3, '0') + '-new', title: 'New test case', steps: ['Open the application'], expected: '', interpreted: [{ text: 'Open the application', action: 'open', confidence: 0.93, notes: [], summary: 'Open the app' }] });
+        markDirty(); S.open.add(s.cases[s.cases.length - 1].id); drawSuite();
+      } })),
+      el('div', { class: 'savebar' + (S.dirty ? '' : ' hidden'), id: 'savebar' }, el('span', { text: 'You have unsaved changes.' }), el('span', { class: 'spacer' }),
+        el('button', { class: 'btn primary', text: 'Save changes', onclick: () => saveSuite().catch(fail) })));
+    paintSummary();
+  }
+
+  /* ---------- results of a test-case run ---------- */
+  let stepsSig = '';
+  Ext.afterRun.push(async (run) => {
+    const isCases = run.kind === 'cases';
+    $('download').classList.toggle('hidden', isCases);
+    if (isCases) $('apply').classList.add('hidden');
+    const heading = document.querySelector('#view-run .bar h3');
+    if (heading) heading.textContent = isCases ? 'Locators that changed (healed automatically)' : 'Locator fixes';
+    const box = $('runSteps');
+    if (!isCases) { box.replaceChildren(); stepsSig = ''; return; }
+    let data;
+    try { data = await get('/runs/' + run.id + '/steps'); } catch { return; }
+    const sig = run.id + JSON.stringify(data);
+    if (sig === stepsSig) return;
+    stepsSig = sig;
+    const open = new Set([...box.querySelectorAll('details[open]')].map((d) => d.dataset.id));
+    const first = box.children.length === 0;
+    const cases = data.cases;
+    const done = cases.filter((c) => c.status !== 'skipped');
+    box.replaceChildren(
+      el('div', { class: 'bar' }, el('h3', { text: 'Test cases' })),
+      cases.length ? el('div', { class: 'guided' },
+        el('div', {}, el('b', { text: pct(mean(done.map((c) => c.confidence / 100))) + '%' }), el('span', { text: 'confidence in these results' })),
+        el('div', {}, el('b', { text: pct(mean(done.map((c) => c.understanding / 100))) + '%' }), el('span', { text: 'steps understood' })),
+        el('div', {}, el('b', { text: `${cases.filter((c) => c.status === 'passed').length} of ${cases.length}` }), el('span', { text: 'test cases passed' })),
+        el('div', { style: 'flex:1;min-width:220px;font-size:13px;color:var(--muted)', text: 'Confidence is how sure we are that a result is right: it drops when a step was only partly understood, or when an element was found by guesswork rather than by name.' })) : null,
+      el('div', { style: 'margin-top:12px' }, ...cases.map((c) => {
+        const d = el('details', { class: 'case', 'data-id': c.id });
+        d.dataset.id = c.id;
+        d.open = first ? c.status === 'failed' || cases.length <= 3 : open.has(c.id);
+        d.append(
+          el('summary', {}, el('span', { class: 'badge b-' + (c.status === 'passed' ? 'ok' : c.status === 'failed' ? 'bad' : 'warn'), text: c.status }), el('b', { text: c.id }), el('span', { text: c.title }),
+            el('span', { class: 'spacer' }), confPill(c.confidence / 100, 'confidence')),
+          el('div', { class: 'body2' },
+            c.advice ? el('div', { class: 'note', text: c.advice }) : null,
+            el('div', {}, ...c.steps.map((s) => el('div', { class: 'stepres ' + s.status },
+              el('span', { class: 'ic', text: s.status === 'passed' ? '✔' : s.status === 'failed' ? '✖' : '–' }),
+              el('span', {}, s.text, s.via && s.via !== 'saved' ? el('span', { class: 'tag', style: 'margin-left:8px', text: s.via === 'healed' ? 'healed' : 'found by name' }) : null),
+              s.status === 'skipped' ? el('span') : confPill(s.confidence),
+              s.matchedAs || s.notes.length ? el('div', { class: 'sub', text: [s.matchedAs ? 'Used ' + s.matchedAs : '', ...s.notes.slice(0, 2)].filter(Boolean).join(' · ') }) : null,
+              s.error ? el('div', { class: 'err', text: s.error }) : null,
+              s.screenshot ? el('a', { href: `/api/runs/${run.id}/shots/${s.screenshot}`, target: '_blank' }, el('img', { src: `/api/runs/${run.id}/shots/${s.screenshot}`, alt: 'The page when this step failed' })) : null)))));
+        return d;
+      })));
+  });
+
+  Ext.afterReport.push((r) => {
+    if (!r.guided) return;
+    $('rBody').prepend(el('div', { class: 'guided' },
+      el('div', {}, el('b', { text: r.guided.confidence + '%' }), el('span', { text: 'confidence in these results' })),
+      el('div', {}, el('b', { text: r.guided.understanding + '%' }), el('span', { text: 'steps understood' })),
+      el('div', {}, el('b', { text: String(100 - r.risk.score) + '%' }), el('span', { text: 'release confidence (100 minus residual risk)' })),
+      el('div', { style: 'flex:1;min-width:220px;font-size:13px;color:var(--muted)', text: 'Results confidence is about these test cases: did we understand and run them correctly. Release confidence is about the app: what is left open or untested.' })));
+  });
+
+  /* ---------- team ---------- */
+  async function renderTeam() {
+    const users = await get('/users');
+    const email = text('name@company.com');
+    const name = text('Full name');
+    const pw = el('input', { type: 'text', placeholder: 'Temporary password (8+ characters)', autocomplete: 'off' });
+    const role = el('select', {}, el('option', { value: 'tester', text: 'Tester' }), el('option', { value: 'admin', text: 'Admin' }));
+    const patch = async (id, change) => { try { await send('/users/' + id, change, 'PATCH'); renderTeam(); } catch (e) { fail(e); } };
+    $('view-team').replaceChildren(
+      el('div', { class: 'hero' }, el('h1', { text: 'Team' }), el('p', { text: 'Testers see only their own work. Admins see everything and manage accounts.' })),
+      el('div', { class: 'tblwrap', style: 'margin-top:16px' }, el('table', { class: 'tbl' }, el('thead', {}, el('tr', {}, ...['Name', 'Email', 'Role', 'Status', ''].map((h) => el('th', { text: h })))),
+        el('tbody', {}, ...users.map((u) => el('tr', {}, el('td', { text: u.name }), el('td', { text: u.email }),
+          el('td', {}, el('select', { class: 'mini', onchange: (e) => patch(u.id, { role: e.target.value }) }, ...['tester', 'admin'].map((r) => el('option', { value: r, text: r, selected: r === u.role })))),
+          el('td', {}, el('span', { class: 'badge b-' + (u.disabled ? 'bad' : 'ok'), text: u.disabled ? 'disabled' : 'active' })),
+          el('td', {}, el('button', { class: 'mini', text: u.disabled ? 'Enable' : 'Disable', onclick: () => patch(u.id, { disabled: !u.disabled }) }),
+            el('button', { class: 'mini', text: 'Set password', onclick: () => { const p = prompt('New password for ' + u.name + ' (8+ characters)'); if (p) patch(u.id, { password: p }); } }))))))),
+      el('section', { class: 'card' }, el('h2', { text: 'Add a person' }), el('div', { class: 'adv' }, field('Name', name), field('Email', email), field('Password', pw), field('Role', role)),
+        el('div', { class: 'cta' }, el('button', { class: 'btn primary', text: 'Add person', onclick: async () => { try { await send('/users', { email: email.value, name: name.value, password: pw.value, role: role.value }); toast('Added.'); renderTeam(); } catch (e) { fail(e); } } }))));
+  }
+})();

@@ -7,10 +7,10 @@ import { chromium, type Browser, type Page } from 'playwright-core';
 import { scenarios } from '../demo/scenarios.js';
 import { Healer } from '../src/index.js';
 
-const exe = ['/opt/pw-browsers/chromium-1194/chrome-linux/chrome'].find(existsSync);
+import { launchOptions } from './launch.js';
 let browser: Browser;
 before(async () => {
-  browser = await chromium.launch({ executablePath: exe, args: ['--no-sandbox'] });
+  browser = await chromium.launch(launchOptions);
 });
 after(async () => {
   await browser.close();

@@ -1,4 +1,7 @@
 node_modules
 .heal
+.heal-server
 *.log
 dist
+.tmp-auto-*
+.tmp-srv-*

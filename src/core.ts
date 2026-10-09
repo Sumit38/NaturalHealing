@@ -24,6 +24,8 @@ export interface HealRecord {
   status: HealStatus;
   decision: Decision;
   fingerprintAfter?: Fingerprint;
+  /** 'test' when a finished test confirmed the heal; 'step' when only the healed step succeeded. */
+  verifiedBy?: 'test' | 'step';
 }
 
 export interface HealerOptions {
@@ -56,13 +58,14 @@ export class HealerCore {
   private readonly weights: Weights;
   private readonly thresholds: Thresholds;
   protected readonly lookupTimeout: number;
-  private test = 'default';
+  protected test = 'default';
+  private readonly learned = new Set<string>();
   private readonly recordsFile: string;
 
   constructor(opts: HealerOptions = {}) {
     const dir = opts.dir ?? process.env.HEAL_DIR ?? '.heal';
     this.recordsFile = join(dir, 'records', `${process.pid}-${Date.now()}.json`);
-    this.store = new FingerprintStore(opts.storeFile ?? join(dir, 'fingerprints.json'));
+    this.store = new FingerprintStore(opts.storeFile ?? process.env.HEAL_STORE ?? join(dir, 'fingerprints.db'));
     this.weights = opts.weights ?? DEFAULT_WEIGHTS;
     this.thresholds = opts.thresholds ?? DEFAULT_THRESHOLDS;
     this.lookupTimeout = opts.lookupTimeout ?? 500;
@@ -77,8 +80,7 @@ export class HealerCore {
    * element (its fingerprint is saved), a healed one when it finds nothing
    * and a match is confident enough, else the original so the test fails as usual.
    */
-  protected async resolve(probe: Probe, selector: string): Promise<string> {
-    const file = callerFile();
+  protected async resolve(probe: Probe, selector: string, file: string | undefined = callerFile()): Promise<string> {
     const key = `${this.test}::${selector}`;
     const count = await probe.count(selector);
 
@@ -114,16 +116,37 @@ export class HealerCore {
     return newSelector;
   }
 
+  /** Saves a fingerprint for a selector that currently finds exactly one element, once per test. */
+  protected async learn(probe: Probe, selector: string): Promise<void> {
+    const key = `${this.test}::${selector}`;
+    if (this.learned.has(key)) return;
+    this.learned.add(key);
+    if ((await probe.count(selector)) !== 1) return;
+    const node = await probe.describe(selector);
+    if (node) this.store.set(key, { node, viewport: await probe.viewport(), selector });
+  }
+
+  /** Marks the heal for `newSelector` as verified or failed once the step that used it has finished. */
+  protected settle(oldSelector: string, passed: boolean): void {
+    const r = this.records.find((x) => x.key === `${this.test}::${oldSelector}` && x.status === 'retried');
+    if (!r) return;
+    r.status = passed ? 'verified' : 'failed-verification';
+    r.verifiedBy = 'step';
+    if (passed && r.fingerprintAfter) this.store.set(r.key, r.fingerprintAfter);
+    this.save();
+  }
+
   /** Called when a test ends. The test passing is the verification of its heals. */
   finish(test: string, passed: boolean): void {
     for (const r of this.records.filter((x) => x.test === test && x.status === 'retried')) {
       r.status = passed ? 'verified' : 'failed-verification';
+      r.verifiedBy = 'test';
       if (passed && r.fingerprintAfter) this.store.set(r.key, r.fingerprintAfter);
     }
     this.save();
   }
 
-  private save(): void {
+  protected save(): void {
     mkdirSync(join(this.recordsFile, '..'), { recursive: true });
     writeFileSync(this.recordsFile, JSON.stringify(this.records, null, 2));
   }
@@ -149,13 +172,17 @@ async function stableSelector(probe: Probe, node: UINode): Promise<string | unde
 const OWN_DIR = dirname(fileURLToPath(import.meta.url));
 
 /** The test file that called the healer: the first stack frame outside this package. */
-function callerFile(): string | undefined {
+export function callerFile(): string | undefined {
   const frames = (new Error().stack ?? '').split('\n').slice(1);
+  const own = norm(OWN_DIR) + '/';
   for (const f of frames) {
-    const m = f.match(/\(?((?:file:\/\/)?\/[^():]+\.[cm]?[jt]s):\d+:\d+\)?$/);
+    // POSIX (/a/b.ts), Windows (C:\a\b.ts) and file: URLs, with or without parentheses.
+    const m = f.match(/\(?((?:file:\/\/\/?)?(?:[A-Za-z]:[\\/]|\/)[^()]*?\.[cm]?[jt]s):\d+:\d+\)?$/);
     if (!m) continue;
     const path = m[1].startsWith('file://') ? fileURLToPath(m[1]) : m[1];
-    if (!path.startsWith(OWN_DIR + '/') && !path.includes('node_modules')) return path;
+    if (!norm(path).startsWith(own) && !path.includes('node_modules')) return path;
   }
   return undefined;
 }
+
+const norm = (p: string) => p.replace(/\\/g, '/');

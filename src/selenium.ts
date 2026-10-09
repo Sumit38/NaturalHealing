@@ -22,7 +22,7 @@ export class SeleniumHealer extends HealerCore {
 const isXPath = (selector: string) => selector.startsWith('/') || selector.startsWith('(');
 const by = (selector: string) => (isXPath(selector) ? { xpath: selector } : { css: selector });
 
-function seleniumProbe(driver: WebDriver, timeout: number): Probe {
+export function seleniumProbe(driver: WebDriver, timeout: number): Probe {
   const findAll = (selector: string) => driver.findElements(by(selector));
   return {
     async count(selector) {

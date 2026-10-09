@@ -16,7 +16,7 @@ export class Healer extends HealerCore {
   }
 }
 
-function playwrightProbe(page: Page, timeout: number): Probe {
+export function playwrightProbe(page: Page, timeout: number): Probe {
   return {
     async count(selector) {
       const loc = page.locator(selector);
@@ -24,7 +24,7 @@ function playwrightProbe(page: Page, timeout: number): Probe {
       return loc.count();
     },
     async describe(selector) {
-      const h = await page.locator(selector).elementHandle();
+      const h = await page.locator(selector).elementHandle({ timeout: 2000 });
       return h ? ((await page.evaluate(browserFn as any, h)) as UINode) : null;
     },
     async snapshot() {

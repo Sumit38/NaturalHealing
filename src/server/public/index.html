@@ -1,0 +1,956 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Natural Healing</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232f7d57'/%3E%3Cpath d='M9 22c0-8 5-13 14-13 0 8-5 13-13 13z' fill='%23fff'/%3E%3Cpath d='M9 23c3-5 6-8 11-10' stroke='%232f7d57' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg: #f3f6f4; --panel: #ffffff; --panel-2: #f8faf9; --text: #17201b; --muted: #5d6b63; --line: #dfe6e2;
+    --brand: #2f7d57; --brand-ink: #ffffff; --brand-soft: #e5f3ec; --brand-deep: #1d5a3c;
+    --ok: #1b7f4d; --ok-soft: #e3f5ea; --warn: #9a5b00; --warn-soft: #fdf1da; --bad: #b3261e; --bad-soft: #fde8e6;
+    --info: #1b5fb3; --info-soft: #e4eefb; --code: #eef2ef; --log-bg: #0f1a14; --log-text: #cfe6d9;
+    --shadow: 0 1px 2px rgba(20,40,30,.06), 0 6px 20px rgba(20,40,30,.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f1512; --panel: #17201b; --panel-2: #1b2620; --text: #e6efe9; --muted: #9db0a5; --line: #2a3830;
+      --brand: #4fb383; --brand-ink: #08150e; --brand-soft: #1c3329; --brand-deep: #7fd3a9;
+      --ok: #5ccf94; --ok-soft: #173424; --warn: #e9b259; --warn-soft: #382a10; --bad: #f28b82; --bad-soft: #3b1c1a;
+      --info: #7fb2f5; --info-soft: #15283f; --code: #222e27; --log-bg: #0a100d; --log-text: #bfd8cb;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 6px 20px rgba(0,0,0,.3);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0f1512; --panel: #17201b; --panel-2: #1b2620; --text: #e6efe9; --muted: #9db0a5; --line: #2a3830;
+    --brand: #4fb383; --brand-ink: #08150e; --brand-soft: #1c3329; --brand-deep: #7fd3a9;
+    --ok: #5ccf94; --ok-soft: #173424; --warn: #e9b259; --warn-soft: #382a10; --bad: #f28b82; --bad-soft: #3b1c1a;
+    --info: #7fb2f5; --info-soft: #15283f; --code: #222e27; --log-bg: #0a100d; --log-text: #bfd8cb;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 6px 20px rgba(0,0,0,.3);
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; font: 15px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); }
+  a { color: var(--brand); }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 16px; }
+
+  /* top bar */
+  .top { background: var(--panel); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 5; }
+  .top .wrap { display: flex; align-items: center; gap: 18px; height: 60px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 17px; color: var(--text); text-decoration: none; }
+  .brand svg { width: 30px; height: 30px; }
+  .nav { display: flex; gap: 4px; margin-left: 12px; }
+  .nav a { padding: 7px 14px; border-radius: 99px; color: var(--muted); text-decoration: none; font-weight: 600; font-size: 14px; }
+  .nav a.on { background: var(--brand-soft); color: var(--brand-deep); }
+  .spacer { flex: 1; }
+  .icon-btn { border: 1px solid var(--line); background: var(--panel); color: var(--muted); border-radius: 99px; width: 36px; height: 36px; cursor: pointer; font-size: 16px; }
+
+  /* hero */
+  .hero { padding: 38px 0 10px; }
+  .hero h1 { font-size: clamp(26px, 4vw, 38px); line-height: 1.15; margin: 0 0 10px; letter-spacing: -.02em; }
+  .hero h1 em { font-style: normal; color: var(--brand); }
+  .hero p { color: var(--muted); font-size: 17px; margin: 0; max-width: 640px; }
+  .how { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 24px 0 8px; }
+  .how div { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; font-size: 13px; color: var(--muted); }
+  .how b { display: block; color: var(--text); font-size: 14px; margin-bottom: 2px; }
+  .how .n { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 99px; background: var(--brand-soft); color: var(--brand-deep); font-weight: 700; font-size: 12px; margin-right: 6px; }
+
+  /* cards */
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); padding: 22px; margin-top: 16px; }
+  .card h2 { margin: 0 0 4px; font-size: 17px; display: flex; align-items: center; gap: 10px; }
+  .card h2 .n { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 99px; background: var(--brand); color: var(--brand-ink); font-size: 13px; }
+  .card .sub { color: var(--muted); margin: 0 0 16px 36px; font-size: 14px; }
+  .body { margin-left: 36px; }
+  @media (max-width: 640px) { .card .sub, .body { margin-left: 0; } .how { grid-template-columns: 1fr 1fr; } }
+
+  /* inputs */
+  input[type=text], input[type=url], input[type=password], input[type=email], select { width: 100%; font: inherit; color: var(--text); background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 11px 13px; }
+  input:focus, select:focus, button:focus-visible, .tool:focus-within, .drop:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+  label.field { display: grid; gap: 6px; font-size: 13px; font-weight: 600; color: var(--muted); }
+  .seg { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+  .seg button { border: 1px solid var(--line); background: var(--panel-2); color: var(--muted); border-radius: 10px; padding: 8px 14px; font: inherit; font-weight: 600; cursor: default; display: flex; gap: 8px; align-items: center; }
+  .seg button.on { border-color: var(--brand); background: var(--brand-soft); color: var(--brand-deep); }
+  .seg button[disabled] { opacity: .65; }
+  .soon { font-size: 11px; border-radius: 99px; padding: 1px 8px; background: var(--info-soft); color: var(--info); font-weight: 700; }
+  .err { color: var(--bad); font-size: 13px; margin-top: 6px; min-height: 18px; }
+
+  /* tool cards */
+  .tools { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+  .tool { position: relative; border: 2px solid var(--line); border-radius: 12px; padding: 14px 16px; cursor: pointer; background: var(--panel-2); display: grid; gap: 4px; }
+  .tool input { position: absolute; opacity: 0; }
+  .tool.on { border-color: var(--brand); background: var(--brand-soft); }
+  .tool .t { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; }
+  .tool .logo { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; color: #fff; font-weight: 800; font-size: 14px; }
+  .tool .d { color: var(--muted); font-size: 13px; }
+  .tool .rec { position: absolute; top: 10px; right: 12px; font-size: 11px; font-weight: 700; color: var(--brand-deep); background: var(--panel); border: 1px solid var(--brand); border-radius: 99px; padding: 1px 9px; display: none; }
+  .tool.rec-on .rec { display: block; }
+  .link-btn { background: none; border: 0; color: var(--brand); font: inherit; font-weight: 600; cursor: pointer; padding: 0; margin-top: 12px; }
+  .quiz { margin-top: 12px; background: var(--panel-2); border: 1px dashed var(--line); border-radius: 12px; padding: 14px 16px; }
+  .quiz p { margin: 0 0 8px; font-weight: 600; }
+  .quiz .opts { display: flex; flex-wrap: wrap; gap: 8px; }
+  .quiz .answer { margin-top: 10px; color: var(--brand-deep); font-weight: 600; }
+
+  /* drop */
+  .drop { border: 2px dashed var(--line); border-radius: 12px; padding: 26px 16px; text-align: center; color: var(--muted); cursor: pointer; background: var(--panel-2); transition: .15s; }
+  .drop:hover, .drop.over { border-color: var(--brand); background: var(--brand-soft); color: var(--text); }
+  .drop .big { font-size: 28px; line-height: 1; }
+  .drop b { color: var(--text); }
+  .drop.has { border-style: solid; border-color: var(--brand); background: var(--brand-soft); color: var(--text); }
+  details { margin-top: 16px; } summary { cursor: pointer; font-weight: 600; color: var(--muted); }
+  .adv { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin-top: 12px; }
+  .check { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text); font-weight: 500; }
+
+  /* buttons */
+  button.btn { font: inherit; font-weight: 600; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); color: var(--text); padding: 10px 18px; cursor: pointer; }
+  button.btn:hover:not(:disabled) { border-color: var(--brand); }
+  button.btn.primary { background: var(--brand); color: var(--brand-ink); border-color: var(--brand); }
+  button.btn.primary:hover:not(:disabled) { filter: brightness(1.08); }
+  button.btn.big { padding: 13px 28px; font-size: 16px; }
+  button.btn.danger { color: var(--bad); }
+  button.btn:disabled { opacity: .5; cursor: not-allowed; }
+  .cta { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 20px; }
+  .hint { font-size: 13px; color: var(--muted); }
+
+  /* badges */
+  .badge { display: inline-flex; align-items: center; gap: 6px; border-radius: 99px; padding: 2px 11px; font-size: 12px; font-weight: 700; white-space: nowrap; }
+  .badge::before { content: ""; width: 7px; height: 7px; border-radius: 99px; background: currentColor; }
+  .b-ok { background: var(--ok-soft); color: var(--ok); } .b-bad { background: var(--bad-soft); color: var(--bad); }
+  .b-warn { background: var(--warn-soft); color: var(--warn); } .b-info { background: var(--info-soft); color: var(--info); }
+  .b-info.live::before { animation: pulse 1.2s infinite; } @keyframes pulse { 50% { opacity: .25; } }
+  .b-mute { background: var(--code); color: var(--muted); }
+
+  /* runs list */
+  .runs { display: grid; gap: 10px; }
+  .run { display: grid; grid-template-columns: 1fr auto; gap: 4px 16px; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 18px; cursor: pointer; text-align: left; font: inherit; color: inherit; width: 100%; }
+  .run:hover { border-color: var(--brand); box-shadow: var(--shadow); }
+  .run .nm { font-weight: 700; } .run .mt { color: var(--muted); font-size: 13px; }
+  .run .stats { display: flex; gap: 8px; align-items: center; grid-row: 1 / span 2; grid-column: 2; }
+  .empty { text-align: center; color: var(--muted); padding: 26px; background: var(--panel); border: 1px dashed var(--line); border-radius: 12px; }
+  h3.sec { margin: 28px 0 10px; font-size: 16px; }
+
+  /* run detail */
+  .crumb { margin: 22px 0 0; font-size: 14px; } .crumb a { text-decoration: none; font-weight: 600; }
+  .head { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; margin: 8px 0 4px; }
+  .head h1 { margin: 0; font-size: 24px; letter-spacing: -.01em; }
+  .meta { color: var(--muted); font-size: 13px; display: flex; flex-wrap: wrap; gap: 4px 16px; }
+  .phases { display: flex; gap: 6px; margin: 18px 0 0; }
+  .phases div { flex: 1; text-align: center; font-size: 12px; font-weight: 600; color: var(--muted); padding-top: 8px; border-top: 4px solid var(--line); }
+  .phases div.done { border-color: var(--brand); color: var(--brand-deep); }
+  .phases div.now { border-color: var(--info); color: var(--info); }
+  .phases div.fail { border-color: var(--bad); color: var(--bad); }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-top: 18px; }
+  .tile { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .tile .v { font-size: 30px; font-weight: 800; line-height: 1.1; letter-spacing: -.02em; }
+  .tile .k { font-size: 13px; color: var(--muted); font-weight: 600; }
+  .tile.good .v { color: var(--ok); } .tile.warn .v { color: var(--warn); }
+  .bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 22px 0 10px; }
+  .bar h3 { margin: 0; font-size: 17px; }
+
+  .heal { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; margin-bottom: 12px; box-shadow: var(--shadow); }
+  .heal .row1 { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
+  .heal .tn { font-weight: 700; }
+  .conf { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; margin-left: auto; }
+  .meter { width: 90px; height: 8px; border-radius: 99px; background: var(--code); overflow: hidden; }
+  .meter i { display: block; height: 100%; border-radius: 99px; background: var(--ok); }
+  .meter.mid i { background: var(--warn); } .meter.low i { background: var(--bad); }
+  .diff { display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: stretch; margin: 14px 0 10px; }
+  .diff .side { border-radius: 10px; padding: 10px 12px; min-width: 0; }
+  .diff .was { background: var(--bad-soft); } .diff .now { background: var(--ok-soft); }
+  .diff .lbl { font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  .diff .arrow { align-self: center; color: var(--muted); font-size: 20px; }
+  .diff .el { font-size: 13px; color: var(--muted); margin-top: 4px; overflow-wrap: anywhere; }
+  code { background: var(--code); border-radius: 6px; padding: 2px 7px; font: 13px ui-monospace, "Cascadia Code", Consolas, monospace; overflow-wrap: anywhere; display: inline-block; max-width: 100%; }
+  .diff code { background: rgba(255,255,255,.55); } @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .diff code { background: rgba(0,0,0,.25); } }
+  .heal .why { font-size: 14px; color: var(--muted); }
+  .heal .foot { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+  @media (max-width: 640px) { .diff { grid-template-columns: 1fr; } .diff .arrow { transform: rotate(90deg); justify-self: center; } .conf { margin-left: 0; } }
+
+  .log { background: var(--log-bg); color: var(--log-text); border-radius: 12px; padding: 14px 16px; max-height: 360px; overflow: auto; font: 12.5px/1.5 ui-monospace, "Cascadia Code", Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; }
+  .note { background: var(--info-soft); color: var(--text); border-radius: 12px; padding: 12px 16px; font-size: 14px; margin-top: 14px; }
+  .note.good { background: var(--ok-soft); }
+  .demo { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; background: linear-gradient(135deg, var(--brand-soft), var(--panel)); border: 1px solid var(--line); border-radius: 14px; padding: 18px 22px; margin-top: 16px; }
+  .demo b { font-size: 16px; } .demo p { margin: 2px 0 0; color: var(--muted); font-size: 14px; }
+  /* report */
+  .rep-head { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 8px 0 4px; }
+  .rep-head h1 { margin: 0; font-size: 26px; letter-spacing: -.01em; }
+  .score-row { display: grid; grid-template-columns: minmax(250px, 1.1fr) 2.4fr; gap: 14px; margin-top: 18px; }
+  .risk { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px; display: flex; gap: 16px; align-items: center; box-shadow: var(--shadow); }
+  .ring { width: 112px; height: 112px; flex: none; position: relative; }
+  .ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .ring .num { position: absolute; inset: 0; display: grid; place-items: center; font-size: 30px; font-weight: 800; letter-spacing: -.02em; }
+  .ring .trk { stroke: var(--code); } .lvl-low { color: var(--ok); } .lvl-medium { color: var(--warn); } .lvl-high, .lvl-critical { color: var(--bad); }
+  .risk h3 { margin: 0; font-size: 15px; } .risk .lv { font-size: 22px; font-weight: 800; text-transform: capitalize; } .risk p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+  .tiles.compact { margin-top: 0; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+  .tile .s { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  @media (max-width: 760px) { .score-row { grid-template-columns: 1fr; } }
+  .rsec { margin-top: 26px; } .rsec > h3 { margin: 0 0 4px; font-size: 18px; letter-spacing: -.01em; }
+  .rsec > .lead { margin: 0 0 12px; color: var(--muted); font-size: 14px; }
+  .tbl { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; font-size: 14px; }
+  .tbl th { text-align: left; font-size: 12px; color: var(--muted); font-weight: 700; padding: 9px 12px; background: var(--panel-2); border-bottom: 1px solid var(--line); }
+  .tbl td { padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .tbl tr:last-child td { border-bottom: 0; }
+  .tbl .sm { color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+  .tblwrap { overflow-x: auto; }
+  .pbar { height: 8px; width: 120px; background: var(--code); border-radius: 99px; overflow: hidden; display: inline-block; vertical-align: middle; margin-right: 8px; }
+  .pbar i { display: block; height: 100%; background: var(--brand); border-radius: 99px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  .chip { background: var(--code); border-radius: 99px; padding: 2px 10px; font-size: 12px; color: var(--text); }
+  .chip.btnc { background: var(--warn-soft); color: var(--warn); font-weight: 600; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; } @media (max-width: 760px) { .grid2 { grid-template-columns: 1fr; } }
+  .box { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .box h4 { margin: 0 0 8px; font-size: 14px; }
+  .part { display: grid; grid-template-columns: 170px 1fr 54px; gap: 10px; align-items: center; margin: 8px 0; font-size: 13px; }
+  .part .meter { width: 100%; } .part small { display: block; color: var(--muted); grid-column: 1 / -1; margin-top: -6px; }
+  @media (max-width: 560px) { .part { grid-template-columns: 1fr 54px; } .part .meter { grid-column: 1 / -1; } }
+  select.mini { width: auto; padding: 4px 8px; font-size: 13px; border-radius: 8px; }
+  button.mini { font: inherit; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--text); cursor: pointer; margin: 2px 4px 2px 0; }
+  button.mini:hover { border-color: var(--brand); }
+  .hist { margin: 8px 0 0; padding-left: 18px; color: var(--muted); font-size: 12px; }
+  details.h summary { font-size: 12px; font-weight: 600; color: var(--brand); }
+  .formula { font-size: 13px; color: var(--muted); } .formula li { margin: 3px 0; }
+  .upload { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 12px; }
+  .badge.sevb { text-transform: capitalize; background: var(--code); } .badge.sevb::before { display: none; }
+  .rsec { scroll-margin-top: 76px; }
+  .sev-critical { color: var(--bad); font-weight: 800; } .sev-high { color: var(--bad); font-weight: 700; } .sev-medium { color: var(--warn); font-weight: 700; } .sev-low { color: var(--muted); font-weight: 700; }
+  @media print {
+    .top, .bar button, .nav, .toast, footer, .no-print, #stop, .upload, td button.mini, select.mini { display: none !important; }
+    body { background: #fff; color: #000; } .card, .tile, .box, .risk, .tbl { box-shadow: none; }
+    .rsec { break-inside: avoid-page; }
+  }
+  .nav a, .brand { white-space: nowrap; }
+  .chip-user .btn { padding: 4px 12px; font-size: 13px; }
+  @media (max-width: 1000px) {
+    .top .wrap { flex-wrap: wrap; height: auto; padding-top: 8px; padding-bottom: 8px; row-gap: 4px; }
+    .nav { order: 5; width: 100%; margin-left: 0; overflow-x: auto; padding-bottom: 2px; }
+  }
+  /* sign in, home, test cases */
+  .auth { position: fixed; inset: 0; z-index: 50; background: var(--bg); display: grid; place-items: center; padding: 16px; overflow: auto; }
+  .auth .box { width: min(420px, 100%); background: var(--panel); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); padding: 26px; display: grid; gap: 12px; }
+  .auth h1 { margin: 0; font-size: 24px; } .auth p { margin: 0; color: var(--muted); }
+  .chip-user { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+  .chip-user b { color: var(--text); }
+  .paths { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 14px; margin: 26px 0 8px; }
+  a.path { display: grid; gap: 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 20px; text-decoration: none; color: var(--text); box-shadow: var(--shadow); transition: .15s; }
+  a.path:hover { border-color: var(--brand); transform: translateY(-2px); }
+  a.path .ico { width: 44px; height: 44px; border-radius: 12px; background: var(--brand-soft); display: grid; place-items: center; font-size: 22px; }
+  a.path h3 { margin: 6px 0 0; font-size: 18px; } a.path p { margin: 0; color: var(--muted); font-size: 14px; } a.path .go { color: var(--brand); font-weight: 700; font-size: 14px; margin-top: 4px; }
+  textarea { width: 100%; font: inherit; color: var(--text); background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; resize: vertical; }
+  textarea:focus { outline: 2px solid var(--brand); outline-offset: 1px; }
+  .radios { display: grid; gap: 8px; } .radio { display: flex; gap: 10px; align-items: flex-start; border: 2px solid var(--line); border-radius: 12px; padding: 10px 14px; cursor: pointer; background: var(--panel-2); }
+  .radio.on { border-color: var(--brand); background: var(--brand-soft); } .radio input { margin-top: 4px; } .radio b { display: block; } .radio span { font-size: 13px; color: var(--muted); }
+  .radio.off { opacity: .6; cursor: not-allowed; }
+  .stepper { display: flex; gap: 8px; margin: 18px 0; flex-wrap: wrap; } .stepper span { padding: 6px 14px; border-radius: 99px; background: var(--code); color: var(--muted); font-weight: 600; font-size: 13px; }
+  .stepper span.on { background: var(--brand); color: var(--brand-ink); } .stepper span.done { background: var(--brand-soft); color: var(--brand-deep); }
+  .mapgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; margin: 14px 0; }
+  .suite-head { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 8px 0; }
+  .suite-head input.title { font-size: 22px; font-weight: 700; border: 1px solid transparent; background: transparent; padding: 4px 8px; border-radius: 8px; flex: 1; min-width: 220px; }
+  .suite-head input.title:hover, .suite-head input.title:focus { border-color: var(--line); background: var(--panel); }
+  .runbox { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin: 14px 0; box-shadow: var(--shadow); }
+  .runbox label { flex: 1; min-width: 260px; }
+  .case { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; margin-bottom: 10px; box-shadow: var(--shadow); }
+  .case > summary { list-style: none; cursor: pointer; padding: 12px 16px; display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
+  .case > summary::-webkit-details-marker { display: none; } .case > summary::before { content: '▸'; color: var(--muted); } .case[open] > summary::before { content: '▾'; }
+  .case .body2 { padding: 4px 16px 16px; display: grid; gap: 10px; }
+  .pill { border-radius: 99px; padding: 1px 10px; font-size: 12px; font-weight: 700; background: var(--code); color: var(--muted); }
+  .pill.good { background: var(--ok-soft); color: var(--ok); } .pill.mid { background: var(--warn-soft); color: var(--warn); } .pill.low { background: var(--bad-soft); color: var(--bad); }
+  .stepline { display: grid; grid-template-columns: 28px 1fr auto; gap: 6px 10px; align-items: start; padding: 6px 0; border-top: 1px solid var(--line); }
+  .stepline:first-child { border-top: 0; } .stepline .n { color: var(--muted); font-weight: 700; padding-top: 8px; text-align: right; }
+  .stepline input[type=text] { width: 100%; }
+  .stepline .read { grid-column: 2 / 3; font-size: 13px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; }
+  .stepline.weak .read { color: var(--warn); }
+  .stepline.bad input[type=text] { border-color: var(--bad); }
+  .tag { background: var(--code); border-radius: 6px; padding: 0 7px; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--text); }
+  .sugg { grid-column: 2 / 3; background: var(--info-soft); border-radius: 10px; padding: 8px 12px; font-size: 13px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .savebar { position: sticky; bottom: 0; background: var(--panel); border: 1px solid var(--brand); border-radius: 14px; padding: 10px 16px; display: flex; gap: 12px; align-items: center; box-shadow: var(--shadow); margin-top: 12px; z-index: 4; }
+  .stepres { display: grid; grid-template-columns: 22px 1fr auto; gap: 2px 10px; padding: 7px 0; border-top: 1px solid var(--line); font-size: 14px; }
+  .stepres:first-child { border-top: 0; } .stepres .ic { font-weight: 800; } .stepres.passed .ic { color: var(--ok); } .stepres.failed .ic { color: var(--bad); } .stepres.skipped .ic { color: var(--muted); }
+  .stepres .sub { grid-column: 2 / 4; font-size: 12px; color: var(--muted); } .stepres .err { grid-column: 2 / 4; color: var(--bad); font-size: 13px; margin: 0; min-height: 0; }
+  .stepres img { max-width: 260px; border: 1px solid var(--line); border-radius: 8px; margin-top: 6px; display: block; }
+  .guided { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; background: var(--brand-soft); border-radius: 14px; padding: 14px 18px; margin-top: 14px; }
+  .guided b { font-size: 20px; } .guided span { color: var(--muted); font-size: 13px; display: block; }
+  .stepline button.mini { align-self: start; margin-top: 4px; }
+  @media (max-width: 640px) { .stepline { grid-template-columns: 20px 1fr auto; } .stepline .read, .sugg { grid-column: 2 / 4; } }
+  @media print { .auth, .savebar, .runbox { display: none !important; } }
+  .toast { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 11px 20px; border-radius: 99px; font-weight: 600; box-shadow: var(--shadow); z-index: 20; max-width: 90vw; }
+  .hidden { display: none !important; }
+  footer { color: var(--muted); font-size: 13px; text-align: center; padding: 36px 0 44px; }
+</style>
+</head>
+<body>
+<div class="top"><div class="wrap">
+  <a class="brand" href="#/">
+    <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="var(--brand)"/><path d="M9 22c0-8 5-13 14-13 0 8-5 13-13 13z" fill="#fff"/><path d="M9 23c3-5 6-8 11-10" stroke="var(--brand)" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>
+    Natural Healing
+  </a>
+  <nav class="nav"><a href="#/" data-nav="home">Home</a><a href="#/usecases" data-nav="usecases">Use cases</a><a href="#/cases" data-nav="cases">Test cases</a><a href="#/code" data-nav="code">Test code</a><a href="#/runs" data-nav="runs">Runs</a><a href="#/report" data-nav="report">Report</a><a href="#/team" data-nav="team" id="nav-team" class="hidden">Team</a></nav>
+  <span class="spacer"></span>
+  <span id="userChip"></span>
+  <button class="icon-btn" id="theme" title="Switch light / dark" aria-label="Switch light or dark theme">◐</button>
+</div></div>
+
+<main class="wrap">
+
+<!-- NEW TEST -->
+<div id="view-new" data-view class="hidden">
+  <div class="hero">
+    <h1>Run your web tests. <em>We fix the locators that break.</em></h1>
+    <p>When a release renames or moves a button, your test does not have to fail with “element not found”. Natural Healing finds the same element again, carries on, and shows you exactly what it changed.</p>
+    <div class="how">
+      <div><b><span class="n">1</span>App link</b>Where your site lives</div>
+      <div><b><span class="n">2</span>Pick a tool</b>Playwright or Selenium</div>
+      <div><b><span class="n">3</span>Add tests</b>Upload your project</div>
+      <div><b><span class="n">4</span>Start</b>Review what healed</div>
+    </div>
+  </div>
+
+  <section class="card">
+    <h2><span class="n">1</span>Where is your app?</h2>
+    <p class="sub">Enter the link of the website you want to test.</p>
+    <div class="body">
+      <div class="seg" role="group" aria-label="App type">
+        <button class="on" type="button">🌐 Website</button>
+        <button type="button" disabled>🤖 Android APK <span class="soon">Soon</span></button>
+        <button type="button" disabled>🍎 iOS app <span class="soon">Soon</span></button>
+      </div>
+      <label class="field">App link
+        <input type="url" id="appUrl" placeholder="https://staging.yourapp.com" autocomplete="off">
+      </label>
+      <div class="err" id="urlErr"></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2><span class="n">2</span>Which tool do your tests use?</h2>
+    <p class="sub">Pick the framework your tests are written in.</p>
+    <div class="body">
+      <div class="tools" role="radiogroup" aria-label="Test tool">
+        <label class="tool on" data-tool="playwright">
+          <input type="radio" name="tool" value="playwright" checked>
+          <span class="rec">Recommended</span>
+          <span class="t"><span class="logo" style="background:#2f7d57">Pw</span>Playwright</span>
+          <span class="d">Modern, fast, built-in waiting. Chrome, Firefox and Safari engines.</span>
+        </label>
+        <label class="tool" data-tool="selenium">
+          <input type="radio" name="tool" value="selenium">
+          <span class="rec">Recommended</span>
+          <span class="t"><span class="logo" style="background:#3a7d2c">Se</span>Selenium</span>
+          <span class="d">The long-standing standard (WebDriver). Fits existing Selenium suites.</span>
+        </label>
+      </div>
+      <button class="link-btn" id="quizToggle" type="button">Not sure which one? Answer one question</button>
+      <div class="quiz hidden" id="quiz">
+        <p>What are your tests written with today?</p>
+        <div class="opts">
+          <button class="btn" type="button" data-answer="playwright">Playwright</button>
+          <button class="btn" type="button" data-answer="selenium">Selenium</button>
+          <button class="btn" type="button" data-answer="none">I do not have tests yet</button>
+        </div>
+        <div class="answer" id="quizAnswer"></div>
+      </div>
+      <p class="hint" style="margin-top:12px">Tests written in JavaScript or TypeScript are supported today. Mobile and other languages are next.</p>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2><span class="n">3</span>Add your tests</h2>
+    <p class="sub">Zip your test project and drop it here. No changes to your tests are needed.</p>
+    <div class="body">
+      <div class="drop" id="drop" tabindex="0" role="button" aria-label="Choose a zip file">
+        <div class="big">📦</div>
+        <div><b id="dropTitle">Drop your .zip here</b></div>
+        <div id="dropSub">or click to choose a file</div>
+      </div>
+      <input type="file" id="file" accept=".zip,.js,.mjs,.ts" class="hidden">
+      <details>
+        <summary>Advanced options</summary>
+        <div class="adv">
+          <label class="field">Project name
+            <input type="text" id="name" placeholder="Checkout tests">
+          </label>
+          <label class="field">Test command
+            <input type="text" id="command" placeholder="Detected automatically">
+          </label>
+        </div>
+        <label class="check" style="margin-top:12px"><input type="checkbox" id="install" checked> Install the project’s packages first (<code>npm install</code>)</label>
+        <p class="hint">Runs with the same project name share what they learned, so run once while your app is healthy, then again after a release.</p>
+      </details>
+      <div class="cta">
+        <button class="btn primary big" id="start" disabled>▶ Start testing</button>
+        <span class="hint" id="startHint">Add an app link and your tests to begin.</span>
+      </div>
+      <div class="err" id="err"></div>
+    </div>
+  </section>
+
+  <div class="demo">
+    <div style="flex:1;min-width:240px"><b>No tests handy? Watch it work.</b>
+      <p>Tests a sample site, then a new release (with a real bug and renamed buttons), then the fixed release. You get the full report: coverage, bugs, re-test and risk.</p></div>
+    <button class="btn" id="demoBtn">Run the demo</button>
+  </div>
+
+  <h3 class="sec">Recent runs</h3>
+  <div class="runs" id="recent"></div>
+</div>
+
+<!-- RUN LIST -->
+<div id="view-runs" data-view class="hidden">
+  <div class="hero" style="padding-bottom:0"><h1 style="font-size:28px">All runs</h1></div>
+  <div class="runs" id="allRuns" style="margin-top:16px"></div>
+</div>
+
+<!-- RUN DETAIL -->
+<div id="view-run" data-view class="hidden">
+  <p class="crumb"><a href="#/">← New test</a> &nbsp;·&nbsp; <a href="#/runs">All runs</a></p>
+  <div class="head"><h1 id="dTitle"></h1><span id="dStatus"></span></div>
+  <div class="meta" id="dMeta"></div>
+  <div class="phases" id="phases"></div>
+  <div class="tiles" id="tiles"></div>
+  <div id="verdict"></div>
+
+  <div id="runSteps"></div>
+
+  <div class="bar">
+    <h3>Locator fixes</h3><span class="spacer"></span>
+    <button class="btn" id="stop">■ Stop run</button>
+    <button class="btn" id="viewReport">📊 View report</button>
+    <button class="btn primary" id="apply">Apply selected fixes</button>
+    <button class="btn" id="download">⬇ Download project</button>
+    <button class="btn danger" id="delete">Delete</button>
+  </div>
+  <div id="heals"></div>
+  <p class="hint" id="healHint"></p>
+
+  <div class="bar"><h3>Run log</h3><span class="spacer"></span><button class="btn" id="copyLog">Copy</button></div>
+  <pre class="log" id="log"></pre>
+</div>
+
+<!-- REPORT -->
+<div id="view-report" data-view class="hidden">
+  <p class="crumb no-print"><a href="#/" id="repBackNew">← New test</a> &nbsp;·&nbsp; <a href="#/runs">All runs</a> &nbsp;·&nbsp; <a href="#" id="repBackRun">Run details</a></p>
+  <div class="rep-head">
+    <h1 id="rTitle">Test report</h1><span id="rStatus"></span><span class="spacer"></span>
+    <button class="btn no-print" id="rPrint">🖨 Print / save as PDF</button>
+    <button class="btn no-print" id="rCsv">⬇ Bugs (CSV)</button>
+    <button class="btn primary no-print" id="rRerun">↻ Re-test now</button>
+  </div>
+  <div class="meta" id="rMeta"></div>
+  <div id="rBody"></div>
+</div>
+
+<div id="view-home" data-view class="hidden"></div>
+<div id="view-usecases" data-view class="hidden"></div>
+<div id="view-cases" data-view class="hidden"></div>
+<div id="view-import" data-view class="hidden"></div>
+<div id="view-suite" data-view class="hidden"></div>
+<div id="view-team" data-view class="hidden"></div>
+
+</main>
+<div id="auth" class="auth hidden"></div>
+<footer>Natural Healing · assertions are never changed · only locators that stop matching are healed</footer>
+<div class="toast hidden" id="toast"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const token = new URLSearchParams(location.search).get('token') || '';
+const authHeaders = token ? { Authorization: 'Bearer ' + token } : {};
+const Ext = { handlers: [], afterRun: [], afterReport: [], tick: [], auth: null, boot: null };
+const api = async (path, opts = {}) => {
+  const res = await fetch('/api' + path, { ...opts, headers: { ...authHeaders, ...(opts.headers || {}) } });
+  if (res.status === 401 && Ext.auth) Ext.auth();
+  return res;
+};
+const ACTIVE = ['queued', 'installing', 'running'];
+let file = null, current = null, lastHeals = '';
+const picked = new Map(); // heal id -> true/false once the user has ticked or unticked it
+
+/* ---------- helpers ---------- */
+function el(tag, props = {}, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(props)) {
+    if (k === 'class') e.className = v; else if (k === 'text') e.textContent = v; else if (k.startsWith('on')) e[k] = v; else e[k] = v;
+  }
+  for (const k of kids) if (k != null && k !== false) e.append(k);
+  return e;
+}
+const when = (iso) => new Date(iso).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+const dur = (a, b) => { const s = Math.max(0, Math.round(((b ? new Date(b) : new Date()) - new Date(a)) / 1000)); return s < 60 ? s + 's' : Math.floor(s / 60) + 'm ' + (s % 60) + 's'; };
+const size = (n) => n > 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB';
+function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.remove('hidden'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.add('hidden'), 3800); }
+
+const STATUS = {
+  queued: ['Queued', 'info live'], installing: ['Installing packages', 'info live'], running: ['Testing', 'info live'],
+  passed: ['Passed', 'ok'], failed: ['Tests failed', 'bad'], error: ['Could not run', 'bad'], timeout: ['Timed out', 'bad'],
+};
+function statusBadge(s) { const [t, c] = STATUS[s] || [s, 'mute']; return el('span', { class: 'badge b-' + c, text: t }); }
+
+/* ---------- theme ---------- */
+$('theme').onclick = () => {
+  const dark = document.documentElement.dataset.theme === 'dark' || (!document.documentElement.dataset.theme && matchMedia('(prefers-color-scheme: dark)').matches);
+  document.documentElement.dataset.theme = dark ? 'light' : 'dark';
+  try { localStorage.setItem('nh-theme', document.documentElement.dataset.theme); } catch {}
+};
+try { const t = localStorage.getItem('nh-theme'); if (t) document.documentElement.dataset.theme = t; } catch {}
+
+/* ---------- new test form ---------- */
+const validUrl = (v) => { try { const u = new URL(v); return u.protocol === 'http:' || u.protocol === 'https:'; } catch { return false; } };
+function tool() { return document.querySelector('input[name=tool]:checked').value; }
+function syncTools() { document.querySelectorAll('.tool').forEach((t) => t.classList.toggle('on', t.querySelector('input').checked)); }
+document.querySelectorAll('input[name=tool]').forEach((r) => r.onchange = syncTools);
+
+$('quizToggle').onclick = () => $('quiz').classList.toggle('hidden');
+document.querySelectorAll('[data-answer]').forEach((b) => b.onclick = () => {
+  const a = b.dataset.answer;
+  const pick = a === 'selenium' ? 'selenium' : 'playwright';
+  const why = { playwright: 'You already use Playwright, so stay with it.', selenium: 'Your tests already use Selenium, so stay with it.', none: 'Starting fresh? Playwright waits for elements by itself, which means fewer flaky failures.' }[a];
+  document.querySelector(`input[value=${pick}]`).checked = true; syncTools();
+  document.querySelectorAll('.tool').forEach((t) => t.classList.toggle('rec-on', t.dataset.tool === pick));
+  $('quizAnswer').textContent = '→ ' + (pick === 'playwright' ? 'Playwright' : 'Selenium') + '. ' + why;
+});
+
+function setFile(f) {
+  file = f;
+  $('drop').classList.toggle('has', !!f);
+  $('dropTitle').textContent = f ? f.name : 'Drop your .zip here';
+  $('dropSub').textContent = f ? size(f.size) + ' · click to change' : 'or click to choose a file';
+  refreshStart();
+}
+function refreshStart() {
+  const okUrl = validUrl($('appUrl').value.trim());
+  $('start').disabled = !(okUrl && file);
+  $('startHint').textContent = !okUrl ? 'Add the app link to begin.' : !file ? 'Now add your tests.' : 'Ready.';
+}
+$('appUrl').oninput = () => { $('urlErr').textContent = ''; refreshStart(); };
+$('appUrl').onblur = () => { const v = $('appUrl').value.trim(); if (v && !validUrl(v)) $('urlErr').textContent = 'Enter a full link, starting with http:// or https://'; };
+$('drop').onclick = () => $('file').click();
+$('drop').onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('file').click(); } };
+$('file').onchange = () => $('file').files[0] && setFile($('file').files[0]);
+$('drop').ondragover = (e) => { e.preventDefault(); $('drop').classList.add('over'); };
+$('drop').ondragleave = () => $('drop').classList.remove('over');
+$('drop').ondrop = (e) => { e.preventDefault(); $('drop').classList.remove('over'); if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]); };
+
+$('start').onclick = async () => {
+  $('err').textContent = '';
+  $('start').disabled = true;
+  const q = new URLSearchParams({
+    name: $('name').value.trim() || file.name.replace(/\.[^.]+$/, ''), framework: tool(), appUrl: $('appUrl').value.trim(),
+    command: $('command').value.trim(), install: $('install').checked ? '1' : '0', filename: file.name,
+  });
+  try {
+    const res = await api('/runs?' + q, { method: 'POST', body: file });
+    const body = await res.json();
+    if (!res.ok) throw new Error(body.error);
+    location.hash = '#/run/' + body.id;
+  } catch (e) { $('err').textContent = e.message; }
+  refreshStart();
+};
+
+$('demoBtn').onclick = async () => {
+  $('demoBtn').disabled = true;
+  const step = async (v, msg) => {
+    toast(msg);
+    const run = await (await api('/demo?version=' + v, { method: 'POST' })).json();
+    location.hash = '#/run/' + run.id;
+    await waitFor(run.id);
+    await new Promise((x) => setTimeout(x, 900));
+    return run.id;
+  };
+  try {
+    await step(1, 'Step 1 of 3: testing the healthy site…');
+    await step(2, 'Step 2 of 3: a new release changed the site. Same tests, run again…');
+    const last = await step(3, 'Step 3 of 3: the developers fixed the bug. Re-testing…');
+    toast('Done. This report shows the bug found in step 2 now verified fixed.');
+    location.hash = '#/report/' + last;
+  } catch (e) { toast('Demo failed: ' + e.message); }
+  $('demoBtn').disabled = false;
+};
+async function waitFor(id) {
+  for (;;) {
+    const r = await (await api('/runs/' + id)).json();
+    if (!ACTIVE.includes(r.status)) return r;
+    await new Promise((x) => setTimeout(x, 800));
+  }
+}
+
+/* ---------- run lists ---------- */
+function runCard(r) {
+  const stats = el('div', { class: 'stats' });
+  if (r.failures) stats.append(el('span', { class: 'badge b-' + (r.healed === r.failures ? 'ok' : 'warn'), text: `${r.healed}/${r.failures} healed` }));
+  stats.append(statusBadge(r.status));
+  return el('button', { class: 'run', onclick: () => { location.hash = '#/run/' + r.id; } },
+    el('div', { class: 'nm', text: r.name }),
+    el('div', { class: 'mt', text: `${r.framework === 'selenium' ? 'Selenium' : 'Playwright'} · ${r.appUrl || 'no link'} · ${when(r.createdAt)}` }),
+    stats);
+}
+async function loadRuns() {
+  const res = await api('/runs');
+  if (res.status === 401) { toast('This server needs a token: open the link it printed.'); return; }
+  const runs = await res.json();
+  for (const [id, limit] of [['recent', 4], ['allRuns', 1000]]) {
+    const box = $(id); box.replaceChildren();
+    if (!runs.length) box.append(el('div', { class: 'empty', text: 'No runs yet. Start one above, or try the demo.' }));
+    for (const r of runs.slice(0, limit)) box.append(runCard(r));
+  }
+}
+
+/* ---------- run detail ---------- */
+const VERDICT = { auto: ['High confidence', 'ok'], suggest: ['Please review', 'warn'], refuse: ['Not healed', 'bad'] };
+const HSTATUS = {
+  verified: ['Fix worked', 'ok'], patched: ['Saved to your test file', 'ok'], retried: ['Trying fix…', 'info'],
+  'failed-verification': ['Fix did not work', 'bad'], refused: ['Skipped: not confident enough', 'bad'], 'needs-review': ['Needs a manual edit', 'warn'],
+};
+
+function healCard(h) {
+  const pct = Math.round(h.confidence * 100);
+  const [vt, vc] = VERDICT[h.verdict] || [h.verdict, 'mute'];
+  const [st, sc] = HSTATUS[h.status] || [h.status, 'mute'];
+  const canPick = h.status === 'verified';
+  const cb = el('input', { type: 'checkbox', value: h.id, checked: canPick && (picked.has(h.id) ? picked.get(h.id) : h.verdict === 'auto'), disabled: !canPick });
+  cb.onchange = () => { picked.set(h.id, cb.checked); syncApply(); };
+  return el('div', { class: 'heal' },
+    el('div', { class: 'row1' },
+      el('span', { class: 'tn', text: h.test }), el('span', { class: 'badge b-' + vc, text: vt }),
+      el('span', { class: 'conf' }, el('span', { text: pct + '% sure' }),
+        el('span', { class: 'meter ' + (pct >= 85 ? '' : pct >= 60 ? 'mid' : 'low') }, el('i', { style: 'width:' + pct + '%' })))),
+    el('div', { class: 'diff' },
+      el('div', { class: 'side was' }, el('div', { class: 'lbl', text: 'Was (stopped matching)' }), el('code', { text: h.oldSelector }), el('div', { class: 'el', text: h.before })),
+      el('div', { class: 'arrow', text: '→' }),
+      el('div', { class: 'side now' }, el('div', { class: 'lbl', text: 'Now (found it again)' }),
+        h.newSelector ? el('code', { text: h.newSelector }) : el('span', { class: 'hint', text: 'No safe replacement found' }),
+        h.after ? el('div', { class: 'el', text: h.after }) : null)),
+    el('div', { class: 'why', text: h.reason }),
+    el('div', { class: 'foot' },
+      el('span', { class: 'badge b-' + sc, text: st }),
+      h.file ? el('span', { class: 'hint', text: 'in ' + h.file }) : null,
+      el('span', { class: 'spacer' }),
+      canPick ? el('label', { class: 'check' }, cb, 'Apply this fix to my tests') : null));
+}
+
+function syncApply() {
+  const n = $('heals').querySelectorAll('input[type=checkbox]:checked').length;
+  $('apply').disabled = n === 0;
+  $('apply').textContent = n ? `Apply ${n} selected fix${n === 1 ? '' : 'es'}` : 'Apply selected fixes';
+}
+
+async function loadRun() {
+  if (!current) return;
+  const [r, log] = await Promise.all([api('/runs/' + current), api('/runs/' + current + '/log')]);
+  if (!r.ok) { location.hash = '#/'; return; }
+  const run = await r.json();
+  const active = ACTIVE.includes(run.status);
+  $('dTitle').textContent = run.name;
+  $('dStatus').replaceChildren(statusBadge(run.status));
+  $('dMeta').replaceChildren(
+    el('span', { text: run.framework === 'selenium' ? 'Selenium' : 'Playwright' }),
+    el('span', { text: run.appUrl || 'no app link' }),
+    el('span', { text: 'Command: ' + (run.command || 'detecting…') }),
+    el('span', { text: 'Started ' + when(run.createdAt) }),
+    el('span', { text: 'Took ' + dur(run.createdAt, run.finishedAt) }));
+  $('stop').classList.toggle('hidden', !active);
+
+  // phases
+  const idx = { queued: 0, installing: 1, running: 2 }[run.status];
+  const names = ['Queued', 'Install', 'Run tests', 'Review'];
+  $('phases').replaceChildren(...names.map((n, i) => {
+    let c = '';
+    if (active) c = i < idx ? 'done' : i === idx ? 'now' : '';
+    else c = run.status === 'passed' || run.status === 'failed' ? 'done' : i <= 2 ? (i === 0 ? 'done' : 'fail') : '';
+    return el('div', { class: c, text: n });
+  }));
+
+  // tiles
+  const tile = (v, k, cls = '') => el('div', { class: 'tile ' + cls }, el('div', { class: 'v', text: String(v) }), el('div', { class: 'k', text: k }));
+  $('tiles').replaceChildren(
+    tile(run.failures, 'Locators that broke'), tile(run.healed, 'Healed and working', run.healed ? 'good' : ''),
+    tile(run.refused + run.failed, 'Left for you', run.refused + run.failed ? 'warn' : ''), tile(run.applied, 'Saved to your tests', run.applied ? 'good' : ''));
+
+  // verdict note
+  const v = $('verdict'); v.replaceChildren();
+  if (!active) {
+    if (run.status === 'passed' && !run.failures) v.append(el('div', { class: 'note good', text: 'All tests passed and no locator broke. Natural Healing has remembered these elements, so a future release that changes them can be healed.' }));
+    else if (run.failures && run.healed === run.failures) v.append(el('div', { class: 'note good', text: `${run.healed} broken locator${run.healed === 1 ? ' was' : 's were'} fixed during this run, so your tests kept going instead of failing. Review the fixes below, then apply them to your test files.` }));
+    else if (run.status === 'failed' && !run.failures) v.append(el('div', { class: 'note', text: 'Tests failed, but not because an element went missing (or this is the first run, so nothing was known yet). Healing only handles missing locators; check the log for the real cause.' }));
+    else if (run.status === 'error') v.append(el('div', { class: 'note', text: 'The run could not start. The log below says why (a bad zip, a failed install, or a missing browser are the usual causes).' }));
+  }
+
+  // heals
+  const sig = JSON.stringify(run.heals.map((h) => [h.id, h.status, h.confidence]));
+  if (sig !== lastHeals) {
+    lastHeals = sig;
+    $('heals').replaceChildren();
+    if (!run.heals.length) $('heals').append(el('div', { class: 'empty', text: active ? 'Watching for broken locators…' : 'Nothing needed fixing.' }));
+    for (const h of run.heals) $('heals').append(healCard(h));
+    syncApply();
+  }
+  $('apply').classList.toggle('hidden', !run.heals.some((h) => h.status === 'verified'));
+  $('healHint').textContent = run.heals.length ? 'Nothing is written to your test files until you press Apply. Assertions are never changed. High-confidence fixes are ticked for you; review the others before ticking.' : '';
+
+  // log
+  const pre = $('log'), atEnd = pre.scrollTop + pre.clientHeight >= pre.scrollHeight - 24;
+  pre.textContent = await log.text();
+  if (atEnd) pre.scrollTop = pre.scrollHeight;
+  for (const f of Ext.afterRun) f(run);
+}
+
+$('apply').onclick = async () => {
+  const ids = [...$('heals').querySelectorAll('input:checked')].map((i) => i.value);
+  const res = await api('/runs/' + current + '/apply', { method: 'POST', body: JSON.stringify({ only: ids, approve: ids }) });
+  const body = await res.json();
+  if (!res.ok) return toast(body.error);
+  const ok = body.applied.filter((h) => h.status === 'patched').length, manual = body.applied.length - ok;
+  toast(ok ? `Saved ${ok} fix${ok === 1 ? '' : 'es'} to your tests. Download the project to get them.` + (manual ? ` ${manual} need a manual edit.` : '') : manual ? `${manual} fix${manual === 1 ? ' needs' : 'es need'} a manual edit (the locator is not a plain string in your code).` : 'Nothing to apply.');
+  picked.clear(); lastHeals = ''; loadRun();
+};
+$('stop').onclick = async () => { await api('/runs/' + current + '/stop', { method: 'POST' }); loadRun(); };
+$('delete').onclick = async () => {
+  if (!confirm('Delete this run and its files?')) return;
+  await api('/runs/' + current, { method: 'DELETE' });
+  location.hash = '#/runs';
+};
+$('download').onclick = async () => {
+  const res = await api('/runs/' + current + '/download');
+  const a = el('a', { href: URL.createObjectURL(await res.blob()), download: current + '-healed.zip' });
+  a.click();
+};
+$('copyLog').onclick = async () => { try { await navigator.clipboard.writeText($('log').textContent); toast('Log copied'); } catch { toast('Could not copy'); } };
+
+/* ---------- report ---------- */
+let reportId = null, lastReportSig = '';
+const TEST_STATUS = { passed: ['Passed', 'ok'], failed: ['Failed', 'bad'], timedOut: ['Timed out', 'bad'], skipped: ['Skipped', 'warn'], interrupted: ['Did not finish', 'warn'] };
+const SCEN_STATUS = { passed: ['Passed', 'ok'], failed: ['Failed', 'bad'], skipped: ['Unattended: skipped', 'warn'], 'no-test': ['Unattended: no test', 'warn'] };
+const BUG_STATUS = {
+  open: ['Open', 'bad'], fixed: ['Fixed, awaiting re-test', 'warn'], verified: ['Verified fixed', 'ok'], reopened: ['Reopened', 'bad'],
+  'not-a-bug': ['Not a bug', 'mute'], 'wont-fix': ["Won't fix", 'mute'],
+};
+const CAUSE = { assertion: 'Wrong result', 'element-not-found': 'Element not found', timeout: 'Timed out', error: 'Error' };
+const fmtPct = (v) => (v == null ? 'n/a' : (Number.isInteger(v) ? v : v.toFixed(1)) + '%');
+const shortUrl = (u) => { try { const x = new URL(u); return x.pathname + x.hash || '/'; } catch { return u; } };
+const bdg = (map, key) => { const [t, c] = map[key] || [key, 'mute']; return el('span', { class: 'badge b-' + c, text: t }); };
+const section = (title, lead, ...kids) => el('section', { class: 'rsec' }, el('h3', { text: title }), lead ? el('p', { class: 'lead', text: lead }) : null, ...kids);
+const note = (text, cls = '') => el('div', { class: 'note ' + cls, text });
+function table(head, rows) {
+  return el('div', { class: 'tblwrap' }, el('table', { class: 'tbl' },
+    el('thead', {}, el('tr', {}, ...head.map((h) => el('th', { text: h })))),
+    el('tbody', {}, ...rows)));
+}
+const td = (...kids) => el('td', {}, ...kids);
+const bar = (p) => el('span', { class: 'pbar' }, el('i', { style: 'width:' + Math.max(0, Math.min(100, p || 0)) + '%' }));
+
+function gauge(risk) {
+  const C = 2 * Math.PI * 46, off = C * (1 - risk.score / 100);
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg'); svg.setAttribute('viewBox', '0 0 112 112');
+  for (const [cls, dash] of [['trk', null], ['val', off]]) {
+    const c = document.createElementNS(ns, 'circle');
+    for (const [k, v] of Object.entries({ cx: 56, cy: 56, r: 46, fill: 'none', 'stroke-width': 11 })) c.setAttribute(k, v);
+    if (dash == null) c.setAttribute('class', 'trk'); else {
+      c.setAttribute('stroke', 'currentColor'); c.setAttribute('stroke-linecap', 'round');
+      c.setAttribute('stroke-dasharray', C); c.setAttribute('stroke-dashoffset', dash);
+    }
+    svg.append(c);
+  }
+  return el('div', { class: 'ring lvl-' + risk.level }, svg, el('div', { class: 'num', text: String(risk.score) }));
+}
+
+function renderReport(r) {
+  const body = $('rBody'); body.replaceChildren();
+  if (!r.isLatest) body.append(el('div', { class: 'note no-print' }, 'This is the report as it stood right after this run. Bugs and re-tests have moved on since. ', el('a', { href: '#/report/' + r.latestId, text: 'Open the latest report' }), '.'));
+  const s = r.summary, c = r.coverage, d = r.density, bs = r.bugStats;
+  const sevText = bs.openBySeverity.filter((x) => x.count).map((x) => `${x.count} ${x.severity}`).join(', ') || 'none';
+  const tile = (v, k, sub, cls = '') => el('div', { class: 'tile ' + cls }, el('div', { class: 'v', text: v }), el('div', { class: 'k', text: k }), el('div', { class: 's', text: sub }));
+
+  body.append(el('div', { class: 'score-row' },
+    el('div', { class: 'risk' }, gauge(r.risk), el('div', {},
+      el('h3', { text: 'Residual risk' }), el('div', { class: 'lv lvl-' + r.risk.level, text: r.risk.level }),
+      el('p', { text: 'Out of 100. Lower is better. It rises with open bugs, failures, gaps in coverage and unattended scenarios.' }))),
+    el('div', { class: 'tiles compact' },
+      tile(fmtPct(s.passRate), 'Pass rate', `${s.passed} of ${s.executed} executed tests${s.assumedFailed ? ` · ${s.assumedFailed} failure${s.assumedFailed === 1 ? '' : 's'} rest on assumptions` : ''}`, s.failed ? 'warn' : 'good'),
+      tile(c.measured ? fmtPct(c.pages.pct) : 'n/a', 'Pages covered', c.measured ? `${c.pages.visited} of ${c.pages.discovered} known pages` : 'not measured'),
+      tile(c.measured ? fmtPct(c.elements.pct) : 'n/a', 'Controls exercised', c.measured ? `${c.elements.touched} of ${c.elements.total} on tested pages` : 'not measured'),
+      tile(String(bs.openNow), 'Open bugs', s.assumedFailed ? sevText + ` · ${s.assumedFailed} guesses to decide` : sevText, bs.openNow ? 'warn' : 'good'),
+      tile(d.perHundredTests == null ? 'n/a' : String(d.perHundredTests), 'Defect density', 'bugs per 100 tests run'),
+      tile(d.residualPerHundredTests == null ? 'n/a' : String(d.residualPerHundredTests), 'Residual density', 'still open after re-testing', d.residual ? 'warn' : 'good'))));
+
+  // plain-language verdict
+  const lead = r.risk.level === 'low' ? 'Low residual risk.' : r.risk.level === 'medium' ? 'Moderate residual risk.' : 'High residual risk.';
+  const reasons = r.risk.parts.filter((p) => p.points >= 3).sort((a, b) => b.points - a.points).slice(0, 3).map((p) => p.detail);
+  body.append(note(lead + (reasons.length ? ' Main contributors: ' + reasons.join('; ') + '.' : ' Nothing stands out.'), r.risk.level === 'low' ? 'good' : ''));
+  if (r.resultsNote) body.append(note(r.resultsNote));
+
+  // test results
+  body.append(section('Test results', `${s.total} tests: ${s.passed} passed, ${s.failed} failed, ${s.skipped} skipped${s.interrupted ? ', ' + s.interrupted + ' did not finish' : ''}${s.flaky ? ', ' + s.flaky + ' flaky' : ''}.`,
+    r.tests.length ? table(['Test', 'Result', 'Time', 'Detail'], r.tests.map((t) => el('tr', {}, td(t.title), td(bdg(TEST_STATUS, t.status)), td(t.durationMs ? (t.durationMs / 1000).toFixed(1) + 's' : ''), td(el('span', { class: 'sm', text: (t.assumed && t.status !== 'passed' ? 'Assumed expectation, needs your decision. ' : '') + (t.error || '') }))))) : el('div', { class: 'empty', text: 'No test results.' })));
+
+  // coverage
+  const cov = [];
+  if (!c.measured) cov.push(note('No coverage was recorded for this run. Coverage comes from the pages and controls your Playwright or Selenium tests actually used, so it needs at least one test that opens a page.'));
+  else {
+    cov.push(table(['Page the tests visited', 'Controls used', 'Coverage'], c.pageRows.map((p) => el('tr', {}, td(el('b', { text: shortUrl(p.url) }), el('div', { class: 'sm', text: p.title || '' })), td(`${p.touched} of ${p.elements}`), td(bar(p.pct), fmtPct(p.pct))))));
+    const gaps = el('div', { class: 'grid2', style: 'margin-top:14px' });
+    const pagesBox = el('div', { class: 'box' }, el('h4', { text: `Pages never opened by a test (${c.uncoveredPages.length})` }));
+    if (!c.uncoveredPages.length) pagesBox.append(el('span', { class: 'hint', text: 'Every page the tests could see was visited.' }));
+    for (const p of c.uncoveredPages) pagesBox.append(el('div', {}, el('code', { text: shortUrl(p.url) }), el('div', { class: 'sm hint', text: 'linked from ' + p.linkedFrom.map(shortUrl).join(', ') })));
+    const ctrlBox = el('div', { class: 'box' }, el('h4', { text: 'Controls on tested pages that no test used' }));
+    let any = false;
+    for (const p of c.pageRows) {
+      if (!p.untouched.length) continue; any = true;
+      ctrlBox.append(el('div', { style: 'margin-bottom:8px' }, el('b', { text: shortUrl(p.url) }),
+        el('div', { class: 'chips' }, ...p.untouched.slice(0, 14).map((e) => el('span', { class: 'chip' + (e.role === 'button' ? ' btnc' : ''), text: `${e.role}: ${e.name || e.tag}` })),
+          p.untouched.length > 14 ? el('span', { class: 'chip', text: `+${p.untouched.length - 14} more` }) : null)));
+    }
+    if (!any) ctrlBox.append(el('span', { class: 'hint', text: 'Every control on the tested pages was used.' }));
+    gaps.append(pagesBox, ctrlBox); cov.push(gaps);
+    cov.push(el('p', { class: 'hint', text: 'Pages are found from the links on the pages your tests opened, so areas that nothing links to (or that sit behind pages no test reached) cannot be listed.' }));
+  }
+  body.append(section('Test coverage and uncovered areas', 'What the tests touched compared with what the application offers.', ...cov));
+
+  // scenarios
+  const sc = r.scenarios;
+  const up = el('div', { class: 'upload no-print' },
+    el('label', { class: 'btn', style: 'cursor:pointer' }, sc.provided ? 'Replace scenario list (CSV)' : 'Upload planned scenarios (CSV)',
+      el('input', { type: 'file', accept: '.csv,.txt', class: 'hidden', onchange: uploadScenarios })),
+    el('span', { class: 'hint', text: 'Columns: id, title, area, priority. Tests are matched by id (put TC-01 in the test name) or by title.' }));
+  const scBody = [up];
+  if (!sc.provided) {
+    scBody.push(note('No scenario list yet. Without one, only skipped or unfinished tests count as unattended. Upload your planned scenarios to see which ones have no test at all.'));
+    if (sc.unattendedTests.length) scBody.push(table(['Skipped or unfinished test', 'State'], sc.unattendedTests.map((t) => el('tr', {}, td(t.title), td(bdg(TEST_STATUS, t.status))))));
+  } else {
+    scBody.push(el('p', { class: 'lead', text: `${sc.coverage.attended} of ${sc.coverage.planned} planned scenarios were attended (${fmtPct(sc.coverage.pct)}). ${sc.unattended.length} unattended.${sc.unplannedTests ? ' ' + sc.unplannedTests + ' test(s) match no planned scenario.' : ''}` }));
+    scBody.push(table(['ID', 'Scenario', 'Area', 'Priority', 'Status'], sc.rows.map((x) => el('tr', {}, td(el('b', { text: x.id })), td(x.title), td(x.area || ''), td(x.priority || ''), td(bdg(SCEN_STATUS, x.status))))));
+  }
+  body.append(section('Scenarios and unattended work', 'Scenarios that were planned but not tested, or tests that were skipped.', ...scBody));
+
+  // bugs
+  const live = r.isLatest;
+  const bugCards = r.bugs.map((b) => {
+    const act = el('div', { class: 'no-print' });
+    const btn = (label, status) => el('button', { class: 'mini', text: label, onclick: () => patchBug(b.id, { status }) });
+    if (live) {
+      if (['open', 'reopened'].includes(b.status)) act.append(btn('Mark fixed', 'fixed'), btn('Not a bug', 'not-a-bug'), btn("Won't fix", 'wont-fix'));
+      else if (b.status === 'fixed') act.append(btn('Not fixed: reopen', 'reopened'));
+      else if (['not-a-bug', 'wont-fix'].includes(b.status)) act.append(btn('Reopen', 'open'));
+    }
+    const sev = live ? el('select', { class: 'mini no-print', onchange: (e) => patchBug(b.id, { severity: e.target.value }) },
+      ...['critical', 'high', 'medium', 'low'].map((v) => el('option', { value: v, text: v, selected: v === b.severity }))) : null;
+    const rt = b.retest ? el('span', { class: 'badge b-' + (b.retest.result === 'passed' ? 'ok' : 'bad'), text: b.retest.result === 'passed' ? 'Re-test passed' : 'Re-test failed' })
+      : el('span', { class: 'badge b-mute', text: b.status === 'fixed' ? 'Waiting for a re-test' : 'Not re-tested yet' });
+    return el('div', { class: 'heal' },
+      el('div', { class: 'row1' }, el('b', { text: b.id }), el('span', { class: 'tn', text: b.test }), el('span', { class: 'spacer' }),
+        el('span', { class: 'badge sevb sev-' + b.severity, text: b.severity }), sev),
+      el('div', { class: 'why', style: 'margin-top:8px' }, el('b', { text: (CAUSE[b.cause] || b.cause) + ': ' }), b.error.split('\n')[0].slice(0, 200)),
+      el('div', { class: 'foot' }, bdg(BUG_STATUS, b.status), rt, el('span', { class: 'hint', text: `seen in ${b.occurrences} run${b.occurrences === 1 ? '' : 's'}` }), el('span', { class: 'spacer' }), act),
+      el('details', { class: 'h', style: 'margin-top:8px' }, el('summary', { text: `History (${b.history.length})` }), el('ul', { class: 'hist' }, ...b.history.map((h) => el('li', { text: `${when(h.at)}: ${h.event}` })))));
+  });
+  const fixedWaiting = live && r.bugs.some((b) => b.status === 'fixed');
+  body.append(section('Bugs', 'Every failing test becomes a bug. A later run that passes verifies the fix; one that fails reopens it.',
+    ...(r.bugs.length ? bugCards : [note('No bugs have been found in this project yet.', 'good')]),
+    fixedWaiting ? note('Some bugs are marked fixed. Press “Re-test now” at the top to run the tests again and verify them.') : null));
+
+  // retest
+  const rt = r.retest;
+  body.append(section('Re-test status', 'What happened to bugs when the tests were run again.',
+    el('div', { class: 'tiles compact', style: 'margin-top:0' },
+      tile(String(rt.verified), 'Verified fixed', 're-test passed', rt.verified ? 'good' : ''),
+      tile(String(rt.reopened), 'Reopened', 're-test failed', rt.reopened ? 'warn' : ''),
+      tile(String(rt.pending), 'Awaiting re-test', 'marked fixed', rt.pending ? 'warn' : ''),
+      tile(String(rt.inThisRun), 'Re-tested in this run', 'bugs checked now'))));
+
+  // density + risk breakdown
+  const parts = r.risk.parts.map((p) => el('div', { class: 'part' }, el('span', { text: p.label }),
+    el('span', { class: 'meter ' + (p.points / p.max > 0.66 ? 'low' : p.points / p.max > 0.33 ? 'mid' : '') }, el('i', { style: 'width:' + Math.round((p.points / p.max) * 100) + '%' })),
+    el('b', { text: `${p.points}/${p.max}` }), el('small', { text: p.detail })));
+  body.append(section('Defect density and residual risk', 'How the numbers above were worked out.',
+    el('div', { class: 'grid2' },
+      el('div', { class: 'box' }, el('h4', { text: 'Residual risk: where the points come from' }), ...parts,
+        el('p', { class: 'hint', text: `Score = points earned ÷ points possible for what could be measured, as a percentage. Under 25 is low, under 50 medium, under 75 high, above that critical.` })),
+      el('div', { class: 'box' }, el('h4', { text: 'Defect density' }),
+        el('ul', { class: 'formula' },
+          el('li', { text: `Found in this run: ${d.found} bug(s) ÷ ${s.executed} tests run × 100 = ${d.perHundredTests ?? 'n/a'} per 100 tests.` }),
+          el('li', { text: `Per page tested: ${d.perPage ?? 'n/a'} bug(s) per page (${c.pages.visited} page${c.pages.visited === 1 ? '' : 's'} visited).` }),
+          el('li', { text: `Residual: ${d.residual} bug(s) still open or unverified ÷ ${s.executed} tests × 100 = ${d.residualPerHundredTests ?? 'n/a'}.` }),
+          el('li', { text: 'Bugs closed as “not a bug” or “won’t fix” are not counted.' }),
+          el('li', { text: 'Open-bug weight by severity: critical 10, high 6, medium 3, low 1; a bug marked fixed counts half until a re-test passes.' }))))));
+
+  // healing
+  const h = r.healing;
+  body.append(section('Self-healing during this run', null, el('p', { text: h.failures ? `${h.failures} locator${h.failures === 1 ? '' : 's'} stopped matching. ${h.healed} ${h.healed === 1 ? 'was' : 'were'} healed so the tests could continue, and ${h.applied} ${h.applied === 1 ? 'is' : 'are'} saved into your test files.${h.pending ? ' ' + h.pending + ' fix(es) still need to be reviewed and applied.' : ''}` : 'No locator broke during this run.' }),
+    el('button', { class: 'btn no-print', text: 'Review locator fixes', onclick: () => { location.hash = '#/run/' + reportId; } })));
+}
+
+async function patchBug(bugId, change) {
+  const res = await api(`/runs/${reportId}/bugs/${bugId}`, { method: 'PATCH', body: JSON.stringify(change) });
+  if (!res.ok) return toast((await res.json()).error);
+  lastReportSig = ''; loadReport();
+}
+
+async function uploadScenarios(e) {
+  const f = e.target.files[0]; if (!f) return;
+  const res = await api(`/runs/${reportId}/scenarios`, { method: 'PUT', body: await f.text() });
+  const body = await res.json();
+  if (!res.ok) return toast(body.error);
+  toast(`Loaded ${body.scenarios.length} scenarios.`); lastReportSig = ''; loadReport();
+}
+
+async function loadReport() {
+  if (!reportId) return;
+  const res = await api('/runs/' + reportId + '/report');
+  if (!res.ok) { toast('That run no longer exists.'); location.hash = '#/runs'; return; }
+  const r = await res.json();
+  $('rTitle').textContent = r.run.name;
+  $('rStatus').replaceChildren(statusBadge(r.run.status));
+  $('rMeta').replaceChildren(el('span', { text: r.run.framework === 'selenium' ? 'Selenium' : 'Playwright' }), el('span', { text: r.run.appUrl || 'no app link' }), el('span', { text: 'Run ' + when(r.run.createdAt) }));
+  $('repBackRun').href = '#/run/' + reportId;
+  $('rRerun').classList.toggle('hidden', !r.isLatest);
+  const sig = JSON.stringify(r);
+  if (sig !== lastReportSig) { lastReportSig = sig; renderReport(r); for (const f of Ext.afterReport) f(r); }
+  if (ACTIVE.includes(r.run.status)) $('rBody').prepend(note('This run is still going. The report updates when it finishes.'));
+}
+$('rPrint').onclick = () => window.print();
+$('rCsv').onclick = async () => {
+  const res = await api('/runs/' + reportId + '/bugs.csv');
+  el('a', { href: URL.createObjectURL(await res.blob()), download: reportId + '-bugs.csv' }).click();
+};
+$('rRerun').onclick = async () => {
+  const res = await api('/runs/' + reportId + '/rerun', { method: 'POST' });
+  const body = await res.json();
+  if (!res.ok) return toast(body.error);
+  toast('Re-testing: the same tests, run again on the same app link.'); location.hash = '#/run/' + body.id;
+};
+$('viewReport').onclick = () => { location.hash = '#/report/' + current; };
+
+/* ---------- routing ---------- */
+function showView(id) {
+  document.querySelectorAll('[data-view]').forEach((v) => v.classList.toggle('hidden', v.id !== id));
+  window.scrollTo(0, 0);
+}
+function setNav(name) {
+  document.querySelectorAll('.nav a').forEach((a) => a.classList.toggle('on', a.dataset.nav === name));
+}
+async function route() {
+  const h = location.hash.replace(/^#\/?/, '');
+  const m = h.match(/^run\/([a-f0-9]{12})$/);
+  const rm = h.match(/^report\/([a-f0-9]{12})$/);
+  current = m ? m[1] : null;
+  reportId = rm ? rm[1] : null;
+  lastHeals = ''; lastReportSig = '';
+  for (const handle of Ext.handlers) if (await handle(h)) return;
+  if (h === 'report') { // the newest run's report
+    const runs = await (await api('/runs')).json();
+    if (runs.length) { location.hash = '#/report/' + runs[0].id; return; }
+    toast('Run something first, then its report appears here.'); location.hash = '#/'; return;
+  }
+  showView(reportId ? 'view-report' : current ? 'view-run' : h === 'runs' ? 'view-runs' : 'view-new');
+  setNav(reportId ? 'report' : current ? 'runs' : h === 'runs' ? 'runs' : 'code');
+  if (current) loadRun(); else if (reportId) loadReport(); else loadRuns();
+}
+window.onhashchange = route;
+window.addEventListener('load', () => (Ext.boot ? Ext.boot() : route()));
+setInterval(() => {
+  if (document.hidden) return;
+  for (const f of Ext.tick) f();
+  if (reportId) { if (document.querySelector('#rStatus .live')) loadReport(); } else if (current) loadRun(); else loadRuns();
+}, 1500);
+</script>
+<script src="/cases.js"></script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+Use Case: Submit the DemoQA text box form
+Actor: Visitor
+Preconditions: The visitor can reach demoqa.com
+Main Flow:
+1. The user opens the text box page
+2. The user enters full name, email, current address and permanent address
+3. The user clicks the Submit button
+4. The system shows "Name:Sam Tester"
+5. The system shows "Email:sam@example.com"
+Alternate Flows:
+A1. Invalid email: the system shows an error
+Business Rules:
+- The email must be a valid address
